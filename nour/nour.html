@@ -352,7 +352,7 @@ const MODES = {
   chat: { hint: () => "Type to Nour…", prompt: () => "", chips: () => ["Plan my day in 5 steps", "Nour, what do you think of me?", "Give me a motivating quote"], ask: "What can you tell me about this?" },
   drague: { hint: () => "Paste their message, or ask for an opener…", prompt: () => "MODE: dating and flirting coach. Help the user flirt with charm and confidence: openers, witty replies, date ideas, reading signals, confidence. Stay respectful, honest and consent-minded, never manipulative. When they paste a message they received, give 2-3 reply options in different tones (playful, sweet, bold).", chips: () => ["Give me an opener for someone who loves books", "They replied “haha ok”. What do I send?", "Plan a cheap but memorable first date", "Donne-moi une phrase d'accroche drôle"], ask: "Help me reply to this." },
   langue: { lang: true, hint: l => `Write in ${l}, I'll correct you…`, prompt: l => `MODE: ${l} tutor. Help the user learn ${l}. If they write in ${l}, correct mistakes: give the corrected sentence and a one-line explanation. Add pronunciation tips when useful. Adapt to their level. End with one short question in ${l} to keep practising.`, chips: l => [`Teach me 5 useful ${l} phrases for a café`, `Let's have a short conversation in ${l}`, "Correct me: I goed to the market yesterday"], ask: "Correct this and explain my mistakes." },
-  etude: { hint: () => "Ask about a subject, or add a photo of your lesson…", prompt: () => "MODE: study coach. Explain concepts simply, step by step, with an example. Make summaries, flashcards and quick quizzes on request, and help plan revision. For homework, help them understand first; give the final answer directly if they ask for it.", chips: () => ["Explain photosynthesis simply", "Make me 5 flashcards on World War II", "Quiz me on the French Revolution"], ask: "Explain this to me." },
+  etude: { hint: () => "Ask about a subject, or add a photo of your lesson…", prompt: () => "MODE: study coach. Explain concepts simply, step by step, with an example. Make summaries, flashcards and quick quizzes on request, and help plan revision. For homework, help them understand first; give the final answer directly if they ask for it.", chips: () => ["/explain Reynolds number", "/quiz mass balances on reactors", "/flashcards distillation", "/summarize heat exchangers", "/plan finals in 10 days: thermodynamics"], ask: "Explain this to me." },
   traduction: { lang: true, hint: l => `Text to translate into ${l}…`, prompt: l => `MODE: translator. Translate the user's text into ${l}, naturally and faithfully. Give the translation first, with no sarcasm inside it. Then at most one short line on a nuance, slang or alternative if useful. If the text is already in ${l}, translate it into French instead.`, chips: () => ["Je suis en retard, désolé", "Comment on dit « tu me manques » ?", "On se voit ce soir ?"], ask: "Translate this." },
 };
 
@@ -410,7 +410,7 @@ $("clearChat").onclick = () => { history = []; save(); renderHistory(); if (!bra
 
 /* =====================  MEMORY  ===================== */
 const TAG = /\[\[(remember|forget):\s*([^\]]+?)\s*\]\]/gi;
-const visible = s => s.replace(/\[\[[\s\S]*?(\]\]|$)/g, "").replace(/\[$/, "").trim();
+const visible = s => s.replace(/<think>[\s\S]*?(<\/think>|$)/g, "").replace(/\[\[[\s\S]*?(\]\]|$)/g, "").replace(/\[$/, "").trim();
 function remember(t) {
   t = t.trim().replace(/\s+/g, " ").slice(0, 200);
   if (!t || facts.some(f => f.t.toLowerCase() === t.toLowerCase())) return false;
@@ -630,12 +630,19 @@ async function checkOllama() {
     ollamaModels = (j.models || []).map(m => m.name).filter(n => !/embed/i.test(n));
     renderOllamaModels();
     return ollamaModels.length ? { ok: true } : { ok: false, why: "nomodel" };
-  } catch (e) { return { ok: false, why: "unreachable" }; }
+  } catch (e) {
+    // A no-cors request still reaches a running Ollama, so it tells "blocked" apart from "not running".
+    try { await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/", { mode: "no-cors", signal: AbortSignal.timeout(2000) }); return { ok: false, why: "blocked" }; }
+    catch { return { ok: false, why: "unreachable" }; }
+  }
 }
 function renderOllamaModels() {
   const sel = $("ollamaModel");
   sel.replaceChildren(...(ollamaModels.length ? ollamaModels : ["(none found)"]).map(n => new Option(n, n)));
-  if (!ollamaModels.includes(cfg.ollamaModel)) cfg.ollamaModel = ollamaModels[0] || "";
+  if (!ollamaModels.includes(cfg.ollamaModel)) {
+    const pref = ["qwen3.5:9b", "qwen3", "llama3.2", "gemma3", "llama3", "mistral"];
+    cfg.ollamaModel = pref.map(p => ollamaModels.find(m => m.startsWith(p))).find(Boolean) || ollamaModels[0] || "";
+  }
   sel.value = cfg.ollamaModel;
 }
 async function chromeAI(allowDownload) {
@@ -646,8 +653,8 @@ async function chromeAI(allowDownload) {
     return a === "available" || (allowDownload && (a === "downloadable" || a === "downloading"));
   } catch { return false; }
 }
-async function detectBrain() {
-  $("brainCheck").textContent = "Checking…";
+async function detectBrain(quiet) {
+  if (!quiet) $("brainCheck").textContent = "Checking…";
   const want = cfg.brain;
   let ol = { ok: false }, chrome = false;
   if (want === "auto" || want === "ollama") ol = await checkOllama();
@@ -660,44 +667,51 @@ async function detectBrain() {
   $("brainDot").classList.toggle("on", !!brain);
   $("brainName").textContent = brain ? brain.label : "No brain yet";
   $("brainCheck").textContent = brain ? `Using ${brain.label}.`
-    : want === "ollama" ? (ol.why === "nomodel" ? "Ollama is running but has no model. Run: ollama pull llama3.2" : "Can't reach Ollama. Is it running, and is OLLAMA_ORIGINS set (see setup steps)?")
+    : want === "ollama" ? (ol.why === "nomodel" ? "Ollama is running but has no model." : ol.why === "blocked" ? "Ollama is running but blocks this page. Use the command in the Conversation panel." : "Can't reach Ollama. Is it open?")
     : want === "claude" ? "Paste a Claude API key that starts with sk-ant-."
     : "No brain found yet.";
-  if (!brain) showSetup(ol.why); else hideSetup();
+  if (!brain) { if (!quiet || !setupCard || setupCard.dataset.why !== (ol.why || "")) { showSetup(ol.why); setupCard.dataset.why = ol.why || ""; } }
+  else { hideSetup(); clearInterval(autoCheck); }
   rest();
   return brain;
 }
-let setupCard = null;
+let setupCard = null, autoCheck = null;
+const FIX_CMD = `launchctl setenv OLLAMA_ORIGINS "*"; osascript -e 'quit app "Ollama"'; sleep 2; open -a Ollama; sleep 4; ollama list | tail -n +2 | grep -q . || ollama pull llama3.2`;
 function showSetup(why) {
   hideSetup();
   const d = document.createElement("div"); d.className = "setup";
-  d.innerHTML = `
-    <h3>Give Nour a brain (one time)</h3>
-    <p>An AI can't fit inside one file, so Nour talks to a brain. Pick one. You only do this once.</p>
+  const head = why === "blocked"
+    ? `<h3>Ollama is running, but it's blocking Nour</h3><p>One command fixes it. If you restart your Mac and this box comes back, run it again.</p>`
+    : why === "nomodel"
+    ? `<h3>Ollama is running, but has no AI model yet</h3><p>One command downloads a model (about 2 GB).</p>`
+    : `<h3>Give Nour a brain (one time)</h3><p>Nour's brain is Ollama, a free app that runs the AI on your Mac. If you don't have it yet, install it from <code>ollama.com/download</code> and open it.</p>`;
+  d.innerHTML = head + `
+    <ol>
+      <li>Open the <b>Terminal</b> app (press ⌘ Space, type Terminal, press Enter).</li>
+      <li>Click <b>Copy command</b> below, paste it into Terminal (⌘ V) and press Enter.</li>
+      <li>Wait. Nour connects by itself; this box disappears when it's ready.</li>
+    </ol>
+    <code id="fixCmd" style="display:block;padding:10px;user-select:all">${FIX_CMD.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</code>
+    <div class="row"><button class="btn primary" type="button" id="copyFix">Copy command</button><button class="btn" type="button" id="setupCheck">Check again</button></div>
     <div class="opt">
-      <strong>Option A · Free and private: Ollama on your Mac</strong>
-      <ol>
-        <li>Download and install Ollama from <code>ollama.com/download</code>, then open it.</li>
-        <li>Open the Terminal app and paste these, one at a time:<br>
-          <code>ollama pull llama3.2</code><br>
-          <code>launchctl setenv OLLAMA_ORIGINS "*"</code></li>
-        <li>Quit Ollama (menu bar icon → Quit) and open it again, then click <b>Check again</b>.</li>
-      </ol>
-      ${why === "nomodel" ? "<p>Ollama is running, but no model is downloaded yet. Run the first command above.</p>" : ""}
-    </div>
-    <div class="opt">
-      <strong>Option B · Easiest: a Claude API key</strong>
-      <p>Get a key at <code>platform.claude.com</code> (pay per use; a chat message costs a fraction of a cent to a few cents). Paste it here:</p>
-      <div class="row"><input id="keyIn" type="password" placeholder="sk-ant-…" style="flex:1;min-width:0;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink)"><button class="btn primary" type="button" id="keySave">Use this key</button></div>
-    </div>
-    <div class="row"><button class="btn" type="button" id="setupCheck">Check again</button></div>`;
-  log.appendChild(d); setupCard = d;
+      <strong>No Ollama? Use a Claude API key instead</strong>
+      <p>Get one at <code>platform.claude.com</code> (pay per use, a few cents at most per message) and paste it:</p>
+      <div class="row"><input id="keyIn" type="password" placeholder="sk-ant-…" style="flex:1;min-width:0;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink)"><button class="btn" type="button" id="keySave">Use this key</button></div>
+    </div>`;
+  log.appendChild(d); setupCard = d; log.scrollTop = log.scrollHeight;
+  d.querySelector("#copyFix").onclick = async () => {
+    const b = d.querySelector("#copyFix");
+    try { await navigator.clipboard.writeText(FIX_CMD); b.textContent = "Copied ✓"; }
+    catch { const r = document.createRange(); r.selectNodeContents(d.querySelector("#fixCmd")); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = "Press ⌘ C to copy"; }
+  };
   d.querySelector("#setupCheck").onclick = () => detectBrain();
   d.querySelector("#keySave").onclick = () => {
     const k = d.querySelector("#keyIn").value.trim();
     if (!/^sk-ant-/.test(k)) { d.querySelector("#keyIn").focus(); return; }
-    cfg.apiKey = k; cfg.brain = cfg.brain === "ollama" ? "auto" : cfg.brain; saveCfg(); fillSettings(); detectBrain();
+    cfg.apiKey = k; if (cfg.brain === "ollama") cfg.brain = "auto"; saveCfg(); fillSettings(); detectBrain();
   };
+  clearInterval(autoCheck);
+  autoCheck = setInterval(async () => { if (!brain && document.visibilityState === "visible") await detectBrain(true); if (brain) clearInterval(autoCheck); }, 5000);
 }
 function hideSetup() { setupCard?.remove(); setupCard = null; }
 
@@ -710,7 +724,7 @@ async function runOllama(turns, images, onText, signal) {
   })];
   const r = await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/api/chat", {
     method: "POST", signal, headers: { "content-type": "application/json" },
-    body: JSON.stringify({ model: cfg.ollamaModel, messages: msgs, stream: true, options: { num_predict: smart ? 1024 : 400 } }),
+    body: JSON.stringify({ model: cfg.ollamaModel, messages: msgs, stream: true, think: false, keep_alive: "30m", options: { num_predict: smart ? 1200 : 450 } }),
   });
   if (!r.ok) throw new Error(r.status === 404 ? `Model "${cfg.ollamaModel}" isn't installed. Run: ollama pull ${cfg.ollamaModel}` : `Ollama error ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", text = "";
@@ -795,6 +809,15 @@ async function ask(raw) {
   const files = attachments;
   if (!text && !files.length) return;
   if (!text) text = MODES[mode].ask;
+  const SLASH = {
+    explain: "Explain this simply, step by step, with one concrete example: ",
+    quiz: "Give me a 5-question quiz, one question at a time, and wait for my answer before the next one. Topic: ",
+    flashcards: "Make 8 flashcards (front: question, back: answer), one per line as 'Q: … — A: …'. Topic: ",
+    summarize: "Summarize the key points in 5 short spoken sentences: ",
+    plan: "Make a realistic day-by-day revision plan: ",
+  };
+  const sm = text.match(/^\/(explain|quiz|flashcards|summarize|plan)\b\s*/i);
+  const promptText = sm ? SLASH[sm[1].toLowerCase()] + text.slice(sm[0].length) : text;
   if (!brain) { await detectBrain(); if (!brain) { note("Nour needs a brain first. Follow the steps in the box below."); return; } }
   attachments = []; renderTray(); q.value = ""; autosize();
   const images = files.filter(a => a.kind === "image"), docs = files.filter(a => a.kind === "text");
@@ -805,7 +828,7 @@ async function ask(raw) {
   for (const d of docs) { const n = document.createElement("span"); n.className = "note"; n.textContent = "📄 " + d.name; you.append(n); }
   const stored = text + (files.length ? `\n(attached: ${files.map(f => f.kind === "image" ? "photo" : f.name).join(", ")})` : "");
   history.push({ role: "user", text: stored }); save();
-  const content = text + docs.map(d => `\n\n[File: ${d.name}]\n${d.text}`).join("") + (images.length ? `\n(The user attached ${images.length} photo${images.length > 1 ? "s" : ""}.)` : "");
+  const content = promptText + docs.map(d => `\n\n[File: ${d.name}]\n${d.text}`).join("") + (images.length ? `\n(The user attached ${images.length} photo${images.length > 1 ? "s" : ""}.)` : "");
   const turns = history.slice(-10).map((m, i, arr) => ({ role: m.role, content: i === arr.length - 1 ? content : m.text }));
   while (turns.length && turns[0].role !== "user") turns.shift();
 
