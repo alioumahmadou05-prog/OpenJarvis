@@ -1316,14 +1316,16 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
         }
 
         let mut clone_cmd = tokio::process::Command::new(&git_bin);
+        // Branded builds can point first-launch setup at their own fork and
+        // branch (set at compile time); the default is upstream main.
+        let repo_url = option_env!("OPENJARVIS_REPO_URL")
+            .unwrap_or("https://github.com/open-jarvis/OpenJarvis.git");
+        clone_cmd.args(["clone", "--depth", "1"]);
+        if let Some(branch) = option_env!("OPENJARVIS_REPO_BRANCH") {
+            clone_cmd.args(["--branch", branch]);
+        }
         clone_cmd
-            .args([
-                "clone",
-                "--depth",
-                "1",
-                "https://github.com/open-jarvis/OpenJarvis.git",
-                &clone_target,
-            ])
+            .args([repo_url, clone_target.as_str()])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped());
         prepare_subprocess_for_appimage(&mut clone_cmd);

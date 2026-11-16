@@ -1,0 +1,123 @@
+name: Build Nx Ai for Mac
+
+# Builds the Nour voice assistant ("Nx Ai") as a Mac app and publishes it on
+# the "nour-latest" release page, so it can be installed from a Download link.
+
+on:
+  push:
+    branches: [feat/nour-assistant]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nour-mac
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Use the npm version the frontend requires
+        run: npm install --global npm@11.19.0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Bundle Ollama so the app runs local models out of the box
+        run: |
+          cd frontend/src-tauri/scripts && chmod +x download-ollama.sh
+          ./download-ollama.sh universal-apple-darwin
+          for arch in aarch64 x86_64; do
+            cp ../binaries/ollama-universal-apple-darwin "../binaries/ollama-${arch}-apple-darwin"
+          done
+
+      - name: Write the Nx Ai app config
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const config = {
+            productName: 'Nx Ai',
+            version: `1.0.${process.env.RUN_NUMBER}`,
+            identifier: 'ai.nx.nour',
+            app: {
+              windows: [{
+                title: 'Nx Ai', width: 1100, height: 820, minWidth: 420, minHeight: 600,
+                resizable: true, fullscreen: false, decorations: true, transparent: false,
+              }],
+            },
+            bundle: {
+              targets: ['app', 'dmg'],
+              externalBin: ['binaries/ollama'],
+              icon: [
+                'icons-nour/32x32.png', 'icons-nour/128x128.png', 'icons-nour/128x128@2x.png',
+                'icons-nour/icon.icns', 'icons-nour/icon.png',
+              ],
+              shortDescription: 'Nour, your sarcastic AI voice assistant',
+            },
+            plugins: {
+              // Never "update" this app into plain OpenJarvis.
+              updater: { endpoints: [`https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/nour-updates/latest.json`] },
+            },
+          };
+          writeFileSync('frontend/src-tauri/tauri.nour.conf.json', JSON.stringify(config, null, 2));
+          NODE
+
+      - name: Build the Mac app (Apple Silicon + Intel)
+        working-directory: frontend
+        env:
+          VITE_START_PAGE: nour
+          VITE_OPENJARVIS_NO_UPDATER: '1'
+          # First launch downloads the assistant's engine from this fork and branch.
+          OPENJARVIS_REPO_URL: https://github.com/${{ github.repository }}.git
+          OPENJARVIS_REPO_BRANCH: ${{ github.ref_name }}
+        run: npx tauri build --target universal-apple-darwin --config src-tauri/tauri.nour.conf.json
+
+      - name: Collect the installer
+        id: dmg
+        run: |
+          DMG=$(ls frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          mkdir -p out && cp "$DMG" out/Nx-Ai.dmg
+          ls -lh out
+
+      - name: Publish on the download page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nour-latest --yes --cleanup-tag 2>/dev/null || true
+          cat > notes.md <<'MD'
+          ## Install Nx Ai (Nour) on your Mac
+
+          1. Click **Nx-Ai.dmg** below to download it.
+          2. Open the downloaded file and drag **Nx Ai** onto the **Applications** folder.
+          3. Open **Applications**, then **right-click Nx Ai → Open**, and click **Open** again.
+             (Needed once, because this app isn't from the App Store.)
+             If your Mac still refuses: System Settings → Privacy & Security → scroll down → **Open Anyway**.
+          4. The first launch sets things up and downloads a starter AI model. Keep the window open for a few minutes.
+
+          Works on Apple Silicon and Intel Macs (macOS 10.15 or newer).
+          MD
+          gh release create nour-latest out/Nx-Ai.dmg \
+            --title "Nx Ai for Mac (build ${{ github.run_number }})" \
+            --notes-file notes.md \
+            --target "${{ github.sha }}" \
+            --latest

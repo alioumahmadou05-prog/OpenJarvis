@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Routes, Route } from 'react-router';
+import { Routes, Route, useNavigate } from 'react-router';
 import { Layout } from './components/Layout';
 import { ChatPage } from './pages/ChatPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -184,6 +184,16 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [commandPaletteOpen, setCommandPaletteOpen, toggleSystemPanel]);
 
+
+  // Branded builds (e.g. the Nour app) can open on a page other than chat.
+  const navigate = useNavigate();
+  const startPageApplied = useRef(false);
+  useEffect(() => {
+    const start = import.meta.env.VITE_START_PAGE;
+    if (!setupDone || startPageApplied.current || !start) return;
+    startPageApplied.current = true;
+    if (window.location.pathname === '/') navigate(`/${start}`, { replace: true });
+  }, [setupDone, navigate]);
 
   if (!setupDone) {
     return <SetupScreen onReady={handleSetupReady} />;
