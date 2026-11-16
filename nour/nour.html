@@ -625,15 +625,17 @@ function systemPrompt() {
 async function checkOllama() {
   try {
     const r = await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/api/tags", { signal: AbortSignal.timeout(2500) });
-    if (!r.ok) return { ok: false, why: "http " + r.status };
+    if (!r.ok) { diag.ollama = "answered " + r.status; return { ok: false, why: "http " + r.status }; }
     const j = await r.json();
     ollamaModels = (j.models || []).map(m => m.name).filter(n => !/embed/i.test(n));
     renderOllamaModels();
+    diag.ollama = ollamaModels.length ? "connected (" + ollamaModels.length + " models)" : "connected, no models";
     return ollamaModels.length ? { ok: true } : { ok: false, why: "nomodel" };
   } catch (e) {
+    diag.err = String(e && e.message || e).slice(0, 120);
     // A no-cors request still reaches a running Ollama, so it tells "blocked" apart from "not running".
-    try { await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/", { mode: "no-cors", signal: AbortSignal.timeout(2000) }); return { ok: false, why: "blocked" }; }
-    catch { return { ok: false, why: "unreachable" }; }
+    try { await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/", { mode: "no-cors", signal: AbortSignal.timeout(2000) }); diag.ollama = "running but blocked this page"; return { ok: false, why: "blocked" }; }
+    catch { diag.ollama = "not reachable (not running, or the browser blocked it)"; return { ok: false, why: "unreachable" }; }
   }
 }
 function renderOllamaModels() {
@@ -648,8 +650,9 @@ function renderOllamaModels() {
 async function chromeAI(allowDownload) {
   // "available" = ready now. "downloadable"/"downloading" = Chrome must fetch the model first (only when chosen explicitly).
   try {
-    if (!("LanguageModel" in window)) return false;
+    if (!("LanguageModel" in window)) { diag.chromeAI = "not in this browser"; return false; }
     const a = await LanguageModel.availability();
+    diag.chromeAI = a;
     return a === "available" || (allowDownload && (a === "downloadable" || a === "downloading"));
   } catch { return false; }
 }
@@ -658,7 +661,7 @@ async function detectBrain(quiet) {
   const want = cfg.brain;
   let ol = { ok: false }, chrome = false;
   if (want === "auto" || want === "ollama") ol = await checkOllama();
-  if (want === "auto" || want === "chrome") chrome = await chromeAI(want === "chrome");
+  chrome = await chromeAI(want === "chrome"); if (want !== "auto" && want !== "chrome") chrome = false;
   const hasKey = /^sk-ant-/.test(cfg.apiKey.trim());
   if ((want === "auto" || want === "ollama") && ol.ok) brain = { kind: "ollama", label: "Ollama · " + cfg.ollamaModel };
   else if ((want === "auto" || want === "claude") && hasKey) brain = { kind: "claude", label: "Claude API" };
@@ -675,12 +678,20 @@ async function detectBrain(quiet) {
   rest();
   return brain;
 }
-let setupCard = null, autoCheck = null;
+let setupCard = null, autoCheck = null, diag = { ollama: "not checked", err: "", chromeAI: "not checked" };
+const UA = navigator.userAgent;
+const isSafari = /Safari/.test(UA) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(UA);
+const browserName = isSafari ? "Safari" : /Edg\//.test(UA) ? "Edge" : /Firefox/.test(UA) ? "Firefox" : /Chrome\/(\d+)/.test(UA) ? "Chrome " + UA.match(/Chrome\/(\d+)/)[1] : "Unknown browser";
 const FIX_CMD = `launchctl setenv OLLAMA_ORIGINS "*"; osascript -e 'quit app "Ollama"'; sleep 2; open -a Ollama; sleep 4; ollama list | tail -n +2 | grep -q . || ollama pull llama3.2`;
 function showSetup(why) {
   hideSetup();
   const d = document.createElement("div"); d.className = "setup";
-  const head = why === "blocked"
+  const safariFile = isSafari && location.protocol === "file:" && why !== "nomodel";
+  const head = safariFile
+    ? `<h3>Safari is blocking Nour</h3><p>Safari doesn't let a page opened from a file talk to Ollama. Open Nour in <b>Google Chrome</b> instead (free at <code>google.com/chrome</code>):</p>
+       <ol><li>In Finder, right-click <b>Nour.html</b> → <b>Get Info</b>.</li><li>Under <b>Open with</b>, pick <b>Google Chrome</b>, then click <b>Change All…</b></li><li>Open Nour.html again. Your shortcut will now open in Chrome.</li></ol>
+       <p>Then, if Chrome shows a box here too, follow the steps in it.</p>`
+    : why === "blocked"
     ? `<h3>Ollama is running, but it's blocking Nour</h3><p>One command fixes it. If you restart your Mac and this box comes back, run it again.</p>`
     : why === "nomodel"
     ? `<h3>Ollama is running, but has no AI model yet</h3><p>One command downloads a model (about 2 GB).</p>`
@@ -693,12 +704,31 @@ function showSetup(why) {
     </ol>
     <code id="fixCmd" style="display:block;padding:10px;user-select:all">${FIX_CMD.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</code>
     <div class="row"><button class="btn primary" type="button" id="copyFix">Copy command</button><button class="btn" type="button" id="setupCheck">Check again</button></div>
+    ${["available", "downloadable", "downloading"].includes(diag.chromeAI) ? `<div class="opt">
+      <strong>Free, no Terminal: Chrome's built-in AI</strong>
+      <p>Your Chrome has a small AI built in. It's less clever than Ollama's models but needs no setup${diag.chromeAI === "available" ? "" : " (Chrome downloads it once, a few GB)"}.</p>
+      <div class="row"><button class="btn primary" type="button" id="useChromeAI">Use Chrome's built-in AI</button><span id="chromeAIProgress" style="color:var(--dim);font-size:13px;align-self:center"></span></div>
+    </div>` : ""}
     <div class="opt">
       <strong>No Ollama? Use a Claude API key instead</strong>
       <p>Get one at <code>platform.claude.com</code> (pay per use, a few cents at most per message) and paste it:</p>
       <div class="row"><input id="keyIn" type="password" placeholder="sk-ant-…" style="flex:1;min-width:0;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink)"><button class="btn" type="button" id="keySave">Use this key</button></div>
     </div>`;
+  const dg = document.createElement("p");
+  dg.style.cssText = "font-family:var(--mono);font-size:11px;border-top:1px solid var(--line);padding-top:8px";
+  dg.textContent = `Diagnosis · ${browserName} · opened from ${location.protocol === "file:" ? "a file" : location.host} · Ollama at ${cfg.ollamaUrl}: ${diag.ollama}${diag.err ? " (" + diag.err + ")" : ""} · Chrome AI: ${diag.chromeAI} · ${new Date().toLocaleTimeString()}`;
+  d.append(dg);
   log.appendChild(d); setupCard = d; log.scrollTop = log.scrollHeight;
+  const cb = d.querySelector("#useChromeAI");
+  if (cb) cb.onclick = async () => {
+    const pr = d.querySelector("#chromeAIProgress");
+    cb.disabled = true; pr.textContent = "Preparing…";
+    try {
+      const sess = await LanguageModel.create({ monitor(m) { m.addEventListener("downloadprogress", e => { pr.textContent = "Downloading " + Math.round((e.loaded || 0) * 100) + "%… keep this page open"; }); } });
+      sess.destroy?.();
+      cfg.brain = "chrome"; saveCfg(); fillSettings(); await detectBrain();
+    } catch (e) { pr.textContent = "Chrome couldn't set it up: " + (e.message || e); cb.disabled = false; }
+  };
   d.querySelector("#copyFix").onclick = async () => {
     const b = d.querySelector("#copyFix");
     try { await navigator.clipboard.writeText(FIX_CMD); b.textContent = "Copied ✓"; }
