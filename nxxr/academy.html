@@ -1,0 +1,1531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NxxR Language Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Naskh+Arabic:wght@400;600&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+/* NxxR identity: deep black and navy, electric blue. One shell, many rooms. */
+:root {
+  --void: #03050b;
+  --navy: #070d1c;
+  --deck: #0a1326;
+  --panel: #0e1a33;
+  --line: #1c2c4f;
+  --ink: #e6eeff;
+  --dim: #8495bd;
+  --blue: #2f8cff;
+  --cyan: #5fd4ff;
+  --hot: #c9e6ff;
+  --good: #46e0a0;
+  --warn: #ffc65c;
+  --bad: #ff7d9a;
+  --display: "Sora", "Avenir Next", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --cjk: "Noto Sans JP", "Noto Sans SC", "Hiragino Sans", "PingFang SC", sans-serif;
+  --arabic: "Noto Naskh Arabic", "Geeza Pro", "Arial", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: radial-gradient(ellipse at 20% -10%, #0c1c3d 0%, var(--void) 55%) fixed; color: var(--ink); font: 15px/1.55 var(--display); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.mono { font-family: var(--mono); }
+.dim { color: var(--dim); }
+.t-ar { font-family: var(--arabic); direction: rtl; }
+.t-cjk { font-family: var(--cjk); }
+
+/* ---------- Shell ---------- */
+.shell { min-height: 100%; display: grid; grid-template-rows: auto 1fr; grid-template-columns: minmax(0, 1fr); }
+header.top, main { min-width: 0; }
+header.top {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  background: rgba(3,5,11,.82); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+}
+.logo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; letter-spacing: .06em; }
+.logo b { color: var(--cyan); font-weight: 700; }
+.logo span { font-weight: 300; color: var(--dim); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+nav.tabs { display: flex; gap: 2px; flex-wrap: wrap; flex: 1; min-width: 0; }
+nav.tabs button { flex: none; }
+nav.tabs button { background: transparent; border: 0; color: var(--dim); padding: 7px 11px; border-radius: 10px; font-size: 14px; }
+nav.tabs button:hover { color: var(--ink); background: rgba(47,140,255,.08); }
+nav.tabs button[aria-current="page"] { color: var(--hot); background: rgba(47,140,255,.16); }
+.langpick { display: flex; align-items: center; gap: 8px; }
+.sel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; }
+.brainpill { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--dim); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.dot.on { background: var(--good); box-shadow: 0 0 8px var(--good); }
+main { padding: 22px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); max-width: 1180px; width: 100%; margin: 0 auto; }
+.view-title { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.view-title h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); font-weight: 600; letter-spacing: .01em; text-wrap: balance; }
+.view-title p { margin: 4px 0 0; color: var(--dim); }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); }
+
+/* ---------- Building blocks ---------- */
+.card { background: linear-gradient(180deg, rgba(14,26,51,.92), rgba(10,19,38,.92)); border: 1px solid var(--line); border-radius: 16px; padding: 18px; min-width: 0; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 11px; padding: 9px 14px; font-size: 14px; color: var(--ink); }
+.btn:hover { border-color: var(--blue); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 500; }
+.btn.primary:hover { background: #4a9dff; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 5px 10px; font-size: 13px; border-radius: 9px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stat { display: grid; gap: 2px; }
+.stat b { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--dim); font-size: 13px; }
+.bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 999px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+.pill.good { color: var(--good); border-color: rgba(70,224,160,.4); }
+.pill.warn { color: var(--warn); border-color: rgba(255,198,92,.4); }
+.pill.blue { color: var(--cyan); border-color: rgba(95,212,255,.4); }
+.field { display: grid; gap: 6px; font-size: 13px; color: var(--dim); }
+.field input, .field select, .field textarea, textarea.box, input.box { background: var(--void); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; color: var(--ink); width: 100%; }
+textarea.box { min-height: 130px; resize: vertical; line-height: 1.55; }
+.empty { color: var(--dim); padding: 18px; text-align: center; border: 1px dashed var(--line); border-radius: 14px; }
+.note { font-size: 13px; color: var(--dim); }
+.err { color: var(--bad); }
+.toast { position: fixed; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--blue); border-radius: 12px; padding: 10px 16px; z-index: 50; box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width: calc(100% - 32px); }
+
+/* ---------- Dashboard ---------- */
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; height: 120px; }
+.week div { display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-end; height: 100%; min-height: 0; }
+.week div b { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; min-height: 0; }
+.week i { width: 100%; max-width: 34px; border-radius: 8px 8px 3px 3px; background: linear-gradient(180deg, var(--cyan), var(--blue)); min-height: 3px; }
+.week span { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+.skills { display: grid; gap: 10px; }
+.skills label { display: grid; grid-template-columns: 110px 1fr 44px; gap: 10px; align-items: center; font-size: 13px; color: var(--dim); }
+.skills label em { font-style: normal; text-align: right; font-family: var(--mono); color: var(--ink); }
+.langcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.langcard { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; }
+.langcard[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,140,255,.18); }
+.langcard .nm { font-size: 17px; font-weight: 600; }
+
+/* ---------- Course ---------- */
+.level { border: 1px solid var(--line); border-radius: 16px; background: rgba(10,19,38,.7); margin-bottom: 12px; overflow: hidden; }
+.level > summary { list-style: none; cursor: pointer; padding: 16px 18px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.level > summary::-webkit-details-marker { display: none; }
+.lvbadge { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: rgba(47,140,255,.14); color: var(--cyan); font-weight: 700; font-family: var(--mono); }
+.level h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.units { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; padding: 0 18px 18px; }
+.unit { text-align: left; display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.unit:hover:not(:disabled) { border-color: var(--blue); }
+.unit:disabled { opacity: .5; cursor: not-allowed; }
+.unit .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 13px; background: var(--line); color: var(--dim); }
+.unit.done .ic { background: rgba(70,224,160,.16); color: var(--good); }
+.unit.next .ic { background: var(--blue); color: #fff; }
+.unit small { color: var(--dim); font-size: 11px; font-family: var(--mono); }
+
+/* ---------- Lesson ---------- */
+.lesson { display: grid; gap: 14px; }
+.lesson h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; color: var(--hot); }
+.lesson p { margin: 0 0 8px; }
+.lesson ul, .lesson ol { margin: 4px 0 8px; padding-left: 20px; }
+.ex-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ex-table td, .ex-table th { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.ex-table th { color: var(--dim); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.tw { overflow-x: auto; }
+.say { border: 0; background: rgba(47,140,255,.14); color: var(--cyan); width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; flex: none; }
+.say:hover { background: rgba(47,140,255,.3); }
+.say svg { width: 15px; height: 15px; }
+.glyphs { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.glyph { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; text-align: center; display: grid; gap: 2px; }
+.glyph:hover { border-color: var(--blue); }
+.glyph b { font-size: 28px; font-weight: 500; line-height: 1.2; }
+.glyph span { font-size: 12px; color: var(--dim); }
+.glyph small { font-size: 11px; color: var(--dim); font-family: var(--arabic); direction: rtl; }
+.mistake { border-left: 3px solid var(--warn); padding: 6px 12px; margin: 6px 0; background: rgba(255,198,92,.06); border-radius: 0 10px 10px 0; }
+
+/* ---------- Exercises ---------- */
+.exq { display: grid; gap: 12px; }
+.exhead { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.prompt { font-size: 18px; font-weight: 500; }
+.opts { display: grid; gap: 8px; }
+.opt { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; }
+.opt:hover:not(:disabled) { border-color: var(--blue); }
+.opt.sel { border-color: var(--cyan); background: rgba(95,212,255,.08); }
+.opt.right { border-color: var(--good); background: rgba(70,224,160,.1); }
+.opt.wrong { border-color: var(--bad); background: rgba(255,125,154,.08); }
+.tiles { display: flex; flex-wrap: wrap; gap: 8px; min-height: 46px; padding: 8px; border: 1px dashed var(--line); border-radius: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; }
+.tile:hover { border-color: var(--blue); }
+.feedback { border-radius: 12px; padding: 12px 14px; }
+.feedback.ok { background: rgba(70,224,160,.1); border: 1px solid rgba(70,224,160,.35); }
+.feedback.no { background: rgba(255,125,154,.08); border: 1px solid rgba(255,125,154,.35); }
+.diffw { display: inline-block; padding: 1px 6px; border-radius: 6px; margin: 2px; }
+.diffw.hit { background: rgba(70,224,160,.16); color: var(--good); }
+.diffw.miss { background: rgba(255,125,154,.14); color: var(--bad); }
+.progress-steps { display: flex; gap: 4px; }
+.progress-steps i { flex: 1; height: 5px; border-radius: 4px; background: var(--line); }
+.progress-steps i.ok { background: var(--good); } .progress-steps i.no { background: var(--bad); } .progress-steps i.cur { background: var(--blue); }
+
+/* ---------- Teacher & Talk ---------- */
+.chatwrap { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr auto; height: min(70vh, 720px); min-height: 420px; }
+.chatlog { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px 4px 14px; }
+.msg { max-width: 86%; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+.msg.you { align-self: flex-end; background: var(--panel); border: 1px solid var(--line); padding: 9px 14px; border-radius: 16px 16px 4px 16px; }
+.msg.ai { align-self: flex-start; }
+.msg.ai::before { content: attr(data-who); display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .15em; color: var(--cyan); margin-bottom: 2px; }
+.msg.sys { align-self: center; color: var(--dim); font-size: 13px; }
+.msg .fix { display: block; margin-top: 6px; font-size: 13px; color: var(--warn); }
+.composer { display: flex; gap: 6px; align-items: flex-end; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 6px; }
+.composer:focus-within { border-color: var(--blue); }
+.composer textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; padding: 8px 10px; max-height: 140px; }
+.ibtn { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--dim); display: grid; place-items: center; }
+.ibtn:hover { color: var(--ink); }
+.ibtn[aria-pressed="true"] { color: var(--cyan); background: rgba(95,212,255,.14); }
+.ibtn.go { background: var(--blue); color: #fff; }
+.ibtn svg { width: 18px; height: 18px; }
+.quick { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.quick button { flex: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--dim); }
+.quick button:hover { color: var(--ink); border-color: var(--blue); }
+.talk { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; }
+.stage { display: grid; justify-items: center; gap: 12px; padding: 18px; }
+.orbwrap { width: min(380px, 78vw); aspect-ratio: 1; max-width: 100%; }
+#orb { width: 100%; height: 100%; display: block; }
+.state { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); min-height: 1.4em; }
+.state.hot { color: var(--cyan); }
+.bigbtn { min-width: 220px; padding: 13px 22px; border-radius: 999px; border: 0; background: var(--blue); color: #fff; font-weight: 600; font-size: 15px; box-shadow: 0 0 40px rgba(47,140,255,.35); }
+.bigbtn.end { background: #2a1630; color: var(--bad); box-shadow: none; border: 1px solid rgba(255,125,154,.4); }
+.live { min-height: 2.6em; text-align: center; color: var(--hot); font-size: 15px; max-width: 520px; }
+.scenarios { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.scn { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.scn[aria-pressed="true"] { border-color: var(--blue); background: rgba(47,140,255,.12); }
+.scn span { display: block; font-size: 11.5px; color: var(--dim); }
+.subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.subtabs button { border: 1px solid var(--line); background: transparent; color: var(--dim); border-radius: 999px; padding: 6px 14px; font-size: 13.5px; }
+.subtabs button[aria-pressed="true"] { color: var(--hot); border-color: var(--blue); background: rgba(47,140,255,.14); }
+
+/* ---------- Vocabulary ---------- */
+.flash { display: grid; justify-items: center; gap: 14px; text-align: center; padding: 26px 18px; }
+.flash .w { font-size: clamp(30px, 6vw, 46px); font-weight: 500; }
+.flash .r { color: var(--dim); font-family: var(--mono); }
+.vlist { display: grid; gap: 6px; }
+.vrow { display: grid; grid-template-columns: auto 1.2fr 1fr auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.vrow .w { font-weight: 500; }
+
+/* ---------- Voices ---------- */
+.voices { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; max-height: 340px; overflow-y: auto; padding-right: 4px; }
+.voice { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; text-align: left; font-size: 13.5px; }
+.voice[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,140,255,.16); }
+.voice small { display: block; color: var(--dim); font-size: 11.5px; }
+
+/* ---------- Modal ---------- */
+.modal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(3,5,11,.8); backdrop-filter: blur(8px); padding: 16px; }
+.modal .card { width: min(620px, 100%); max-height: 90vh; overflow: auto; display: grid; gap: 14px; }
+
+@media (max-width: 900px) {
+  .g3, .g4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .talk { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .g2, .g3, .g4 { grid-template-columns: 1fr; }
+  .skills label { grid-template-columns: 90px 1fr 40px; }
+  .vrow { grid-template-columns: auto 1fr auto; }
+  .vrow .tr, .vrow .lst { display: none; }
+  nav.tabs { order: 3; flex: 1 1 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .langpick { flex: 1; justify-content: flex-end; min-width: 0; }
+  .logo span { display: none; }
+  .langpick .sel { min-width: 0; max-width: 150px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="logo"><b>NxxR</b> <span>Language Academy</span></div>
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <button data-view="dashboard">Dashboard</button>
+      <button data-view="course">Course</button>
+      <button data-view="teacher">Teacher</button>
+      <button data-view="talk">Talk</button>
+      <button data-view="practice">Practice</button>
+      <button data-view="vocab">Vocabulary</button>
+      <button data-view="grammar">Grammar</button>
+      <button data-view="settings">Settings</button>
+    </nav>
+    <div class="langpick">
+      <select class="sel" id="activeLang" aria-label="Language you are learning"></select>
+      <button class="brainpill" id="brainPill" type="button" title="AI brain"><span class="dot" id="brainDot"></span><span id="brainName">No brain</span></button>
+    </div>
+  </header>
+  <main id="main">
+    <section id="v-dashboard" data-v></section>
+    <section id="v-course" data-v hidden></section>
+    <section id="v-lesson" data-v hidden></section>
+    <section id="v-teacher" data-v hidden></section>
+    <section id="v-talk" data-v hidden></section>
+    <section id="v-practice" data-v hidden></section>
+    <section id="v-vocab" data-v hidden></section>
+    <section id="v-grammar" data-v hidden></section>
+    <section id="v-settings" data-v hidden></section>
+  </main>
+</div>
+<div class="modal" id="modal" hidden><div class="card" id="modalCard" role="dialog" aria-modal="true"></div></div>
+
+<script>
+"use strict";
+/* ============================================================
+   0. UTILITIES
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("nxxr." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("nxxr." + k, JSON.stringify(v)); } catch { toast("Your browser storage is full or blocked; progress may not be saved."); } },
+  del(k) { try { localStorage.removeItem("nxxr." + k); } catch {} },
+};
+const today = () => new Date().toISOString().slice(0, 10);
+const dayKey = d => d.toISOString().slice(0, 10);
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = (a, n) => shuffle(a).slice(0, n);
+let toastT = null;
+function toast(msg) {
+  let t = $("#toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3800);
+}
+const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>';
+const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const SEND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+const sayBtn = (text, code, label) => `<button class="say" type="button" data-say="${esc(text)}" data-code="${code}" aria-label="Listen${label ? ": " + esc(label) : ""}">${SPK}</button>`;
+function normalize(s) {
+  return String(s || "").toLowerCase().normalize("NFKC").replace(/[ً-ْ]/g, "")
+    .replace(/[.,!?¿¡;:"'“”«»。、，！？…()\[\]\-–—]/g, " ").replace(/\s+/g, " ").trim();
+}
+function stripAccents(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function similarity(a, b) {
+  a = normalize(a); b = normalize(b); if (!a && !b) return 1; if (!a || !b) return 0;
+  const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return 1 - d[m][n] / Math.max(m, n);
+}
+function parseJSON(text) {
+  if (!text) throw new Error("Empty answer from the AI.");
+  let t = text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/```(?:json)?/g, "");
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  if (a < 0 || b < a) throw new Error("The AI didn't return a lesson I could read.");
+  t = t.slice(a, b + 1);
+  try { return JSON.parse(t); } catch {}
+  return JSON.parse(t.replace(/,\s*([}\]])/g, "$1"));
+}
+
+/* ============================================================
+   1. LANGUAGES & FOUNDATION DATA (hand-checked)
+   ============================================================ */
+const LANGS = {
+  en: { name: "English", native: "English", tts: "en-GB", stt: "en-GB", script: "latin" },
+  fr: { name: "French", native: "Français", tts: "fr-FR", stt: "fr-FR", script: "latin" },
+  ar: { name: "Arabic", native: "العربية", tts: "ar-SA", stt: "ar-SA", script: "arabic", rtl: true },
+  es: { name: "Spanish", native: "Español", tts: "es-ES", stt: "es-ES", script: "latin" },
+  ha: { name: "Hausa", native: "Hausa", tts: "ha-NG", stt: "ha-NG", script: "latin", ttsFallback: "en-NG" },
+  pcm: { name: "Nigerian Pidgin", native: "Naijá", tts: "en-NG", stt: "en-NG", script: "latin", ttsFallback: "en-GB" },
+  zh: { name: "Chinese (Mandarin)", native: "中文", tts: "zh-CN", stt: "zh-CN", script: "han" },
+  ja: { name: "Japanese", native: "日本語", tts: "ja-JP", stt: "ja-JP", script: "japanese" },
+  de: { name: "German", native: "Deutsch", tts: "de-DE", stt: "de-DE", script: "latin" },
+  pt: { name: "Portuguese", native: "Português", tts: "pt-PT", stt: "pt-PT", script: "latin" },
+  it: { name: "Italian", native: "Italiano", tts: "it-IT", stt: "it-IT", script: "latin" },
+  ru: { name: "Russian", native: "Русский", tts: "ru-RU", stt: "ru-RU", script: "cyrillic" },
+};
+const textClass = code => code === "ar" ? "t-ar" : (code === "zh" || code === "ja") ? "t-cjk" : "";
+
+const NUMBERS = {
+  en: ["zero","one","two","three","four","five","six","seven","eight","nine","ten"],
+  fr: ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix"],
+  ar: ["صفر","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة"],
+  es: ["cero","uno","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez"],
+  ha: ["sifili","ɗaya","biyu","uku","huɗu","biyar","shida","bakwai","takwas","tara","goma"],
+  pcm: ["zero","one","two","three","four","five","six","seven","eight","nine","ten"],
+  zh: ["零","一","二","三","四","五","六","七","八","九","十"],
+  ja: ["ゼロ","いち","に","さん","よん","ご","ろく","なな","はち","きゅう","じゅう"],
+  de: ["null","eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn"],
+  pt: ["zero","um","dois","três","quatro","cinco","seis","sete","oito","nove","dez"],
+  it: ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci"],
+  ru: ["ноль","один","два","три","четыре","пять","шесть","семь","восемь","девять","десять"],
+};
+const NUM_ROM = {
+  ar: ["ṣifr","wāḥid","ithnān","thalātha","arbaʿa","khamsa","sitta","sabʿa","thamāniya","tisʿa","ʿashara"],
+  zh: ["líng","yī","èr","sān","sì","wǔ","liù","qī","bā","jiǔ","shí"],
+  ja: ["zero","ichi","ni","san","yon","go","roku","nana","hachi","kyū","jū"],
+  ru: ["nol'","odin","dva","tri","chetyre","pyat'","shest'","sem'","vosem'","devyat'","desyat'"],
+};
+const L = s => s.split(" ");
+const ALPHABETS = {
+  en: { title: "The English alphabet", items: L("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z").map(c => ({ g: c, s: c.toLowerCase() })) },
+  fr: { title: "L'alphabet français (+ accents)", items: L("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z É È Ê À Ç Ô Î Û Ë Ï").map(c => ({ g: c, s: c.toLowerCase() })) },
+  es: { title: "El alfabeto español", items: L("A B C D E F G H I J K L M N Ñ O P Q R S T U V W X Y Z").map(c => ({ g: c, s: c.toLowerCase() })) },
+  de: { title: "Das deutsche Alphabet", items: L("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z Ä Ö Ü ß").map(c => ({ g: c, s: c === "ß" ? "eszett" : c.toLowerCase() })) },
+  pt: { title: "O alfabeto português", items: L("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z Ã Õ Ç Á É Ê Ó").map(c => ({ g: c, s: c.toLowerCase() })) },
+  it: { title: "L'alfabeto italiano", items: L("A B C D E F G H I L M N O P Q R S T U V Z J K W X Y").map(c => ({ g: c, s: c.toLowerCase() })) },
+  pcm: { title: "Pidgin uses the English alphabet", items: L("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z").map(c => ({ g: c, s: c.toLowerCase() })) },
+  ha: { title: "Hausa Boko alphabet (Latin script)", items: [["a","a"],["b","b"],["ɓ","implosive b"],["c","ch"],["d","d"],["ɗ","implosive d"],["e","e"],["f","f"],["g","g"],["h","h"],["i","i"],["j","j"],["k","k"],["ƙ","ejective k"],["l","l"],["m","m"],["n","n"],["o","o"],["r","r"],["s","s"],["sh","sh"],["t","t"],["ts","ejective s"],["u","u"],["w","w"],["y","y"],["ƴ","glottal y"],["z","z"],["ʼ","glottal stop"]].map(([g, s]) => ({ g, s })) },
+  ru: { title: "Кириллица: the Russian alphabet", items: [["А","a"],["Б","b"],["В","v"],["Г","g"],["Д","d"],["Е","ye"],["Ё","yo"],["Ж","zh"],["З","z"],["И","i"],["Й","y (short)"],["К","k"],["Л","l"],["М","m"],["Н","n"],["О","o"],["П","p"],["Р","r (rolled)"],["С","s"],["Т","t"],["У","u"],["Ф","f"],["Х","kh"],["Ц","ts"],["Ч","ch"],["Ш","sh"],["Щ","shch"],["Ъ","hard sign"],["Ы","y (ɨ)"],["Ь","soft sign"],["Э","e"],["Ю","yu"],["Я","ya"]].map(([g, s]) => ({ g, s })) },
+  ar: { title: "الأبجدية: the 28 Arabic letters (right to left)", items: [["ا","alif"],["ب","bāʾ"],["ت","tāʾ"],["ث","thāʾ"],["ج","jīm"],["ح","ḥāʾ"],["خ","khāʾ"],["د","dāl"],["ذ","dhāl"],["ر","rāʾ"],["ز","zāy"],["س","sīn"],["ش","shīn"],["ص","ṣād"],["ض","ḍād"],["ط","ṭāʾ"],["ظ","ẓāʾ"],["ع","ʿayn"],["غ","ghayn"],["ف","fāʾ"],["ق","qāf"],["ك","kāf"],["ل","lām"],["م","mīm"],["ن","nūn"],["ه","hāʾ"],["و","wāw"],["ي","yāʾ"]].map(([g, s]) => ({ g, s, forms: "ادذرزو".includes(g) ? `${g} ـ${g}` : `${g}ـ ـ${g}ـ ـ${g}` })) },
+  hira: { title: "ひらがな Hiragana (46 basic)", items: [..."あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"].map((g, i) => ({ g, s: L("a i u e o ka ki ku ke ko sa shi su se so ta chi tsu te to na ni nu ne no ha hi fu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa wo n")[i] })) },
+  kata: { title: "カタカナ Katakana (46 basic)", items: [..."アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン"].map((g, i) => ({ g, s: L("a i u e o ka ki ku ke ko sa shi su se so ta chi tsu te to na ni nu ne no ha hi fu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa wo n")[i] })) },
+  tones: { title: "Pinyin: the four tones (+ neutral)", items: [["mā","1st · high flat · 妈 mother"],["má","2nd · rising · 麻 hemp"],["mǎ","3rd · dip · 马 horse"],["mà","4th · falling · 骂 scold"],["ma","neutral · 吗 question"]].map(([g, s]) => ({ g, s, say: { "mā": "妈", "má": "麻", "mǎ": "马", "mà": "骂", "ma": "吗" }[g] })) },
+  initials: { title: "Pinyin initials", items: L("b p m f d t n l g k h j q x zh ch sh r z c s y w").map(g => ({ g, s: g })) },
+};
+
+/* ============================================================
+   2. CURRICULUM (structure; lesson content is generated and cached)
+   ============================================================ */
+const LEVELS = [
+  { n: 0, name: "Foundations", cefr: "Pre-A1", blurb: "Sounds, writing, numbers and your very first words." },
+  { n: 1, name: "Beginner", cefr: "A1", blurb: "Everyday words, the present tense and simple conversations." },
+  { n: 2, name: "Elementary", cefr: "A2", blurb: "Daily life, past and future, describing people and places." },
+  { n: 3, name: "Intermediate", cefr: "B1", blurb: "Opinions, stories, conditionals and natural speech." },
+  { n: 4, name: "Upper Intermediate", cefr: "B2", blurb: "Nuance, idioms, debate and professional language." },
+  { n: 5, name: "Advanced", cefr: "C1", blurb: "Sophisticated vocabulary, academic writing, fluency." },
+  { n: 6, name: "Mastery", cefr: "C2", blurb: "Near-native comprehension, style and cultural depth." },
+];
+const BASE = {
+  0: [["sounds","Pronunciation & basic phonetics"],["numbers","Numbers 0–10"],["vocab","Numbers 10–100"],["vocab","Numbers to 1,000 and beyond"],["vocab","Ordinal numbers"],["vocab","Days of the week"],["vocab","Months & seasons"],["vocab","Dates"],["vocab","Telling the time"],["conv","Greetings"],["conv","Introducing yourself: name & age"],["conv","Yes, no & basic questions"],["vocab","Common everyday expressions"]],
+  1: [["vocab","Family members"],["vocab","Food & drinks"],["vocab","Colours"],["vocab","Animals"],["vocab","Objects around you"],["vocab","Prices & shopping numbers"],["vocab","School"],["vocab","Home"],["vocab","Clothing"],["vocab","Transportation"],["vocab","Countries & nationalities"],["grammar","Personal pronouns"],["grammar","Articles & gender (if any)"],["grammar","Basic verbs"],["grammar","Present tense"],["grammar","Simple sentences"],["grammar","Asking simple questions"],["grammar","Negation"],["conv","Everyday conversations"]],
+  2: [["vocab","Daily routines"],["conv","Shopping"],["conv","At the restaurant"],["conv","Asking for & giving directions"],["vocab","Describing people"],["vocab","Describing places"],["grammar","Past tense foundations"],["grammar","Future tense foundations"],["grammar","Adjectives"],["grammar","Adverbs"],["grammar","Prepositions"],["grammar","Conjunctions"],["grammar","Possessives"],["grammar","Building longer sentences"],["vocab","Common expressions II"],["skill","Listening: short dialogues"],["skill","Reading & writing short texts"]],
+  3: [["grammar","Complex sentence structures"],["grammar","Verb tenses in depth"],["grammar","Conditional sentences"],["grammar","Comparisons"],["grammar","Modal verbs & expressing ability, need, obligation"],["vocab","Advanced everyday vocabulary"],["conv","Expressing opinions"],["conv","Explaining ideas"],["skill","Storytelling"],["conv","Social conversations"],["conv","Formal vs informal communication"],["skill","Writing paragraphs"],["skill","Reading longer texts"],["skill","Understanding natural speech"]],
+  4: [["grammar","Complex grammar"],["grammar","Advanced sentence structures"],["vocab","Idioms"],["vocab","Phrasal verbs & verb constructions"],["vocab","Nuances in meaning"],["conv","Debate & discussion"],["conv","Professional communication"],["vocab","Academic vocabulary"],["skill","Listening to native speakers"],["skill","Writing essays"],["skill","Understanding different accents"]],
+  5: [["grammar","Advanced grammar"],["vocab","Sophisticated vocabulary"],["vocab","Cultural expressions"],["conv","Natural conversational fluency"],["skill","Professional writing"],["skill","Academic writing"],["conv","Public speaking"],["conv","Critical discussion"],["skill","Advanced reading"],["skill","Complex listening"],["vocab","Idiomatic language"],["vocab","Subtle differences between words"]],
+  6: [["conv","Advanced conversations"],["conv","Professional presentations"],["conv","Academic discussions"],["skill","Complex texts"],["vocab","Nuanced expressions"],["vocab","Cultural context"],["skill","Native-level listening"],["sounds","Advanced pronunciation & intonation"],["conv","Natural speech patterns"],["conv","Formal & informal registers in depth"]],
+};
+const SPECIFIC = {
+  en: { 0: [["script","The alphabet","alpha:en"],["sounds","Vowels & consonants"],["sounds","Phonetics & the IPA basics"]], 1: [["grammar","A vs an, and the"]], 3: [["vocab","British vs American English"]] },
+  fr: { 0: [["script","L'alphabet & les accents","alpha:fr"],["sounds","Nasal vowels & silent letters"],["sounds","Liaison"]], 1: [["grammar","Le, la, les: gender of nouns"]], 2: [["grammar","Passé composé vs imparfait"]], 3: [["grammar","Le subjonctif"]] },
+  es: { 0: [["script","El alfabeto","alpha:es"],["sounds","Vowels, ñ and the rolled r"]], 1: [["grammar","Ser vs estar"]], 2: [["grammar","Pretérito vs imperfecto"]], 3: [["grammar","El subjuntivo"]] },
+  de: { 0: [["script","Das Alphabet & Umlaute","alpha:de"],["sounds","Ä, Ö, Ü, ch and the German r"]], 1: [["grammar","Der, die, das: gender"],["grammar","Word order: verb second"]], 2: [["grammar","The four cases: nominative & accusative"],["grammar","Separable verbs"]], 3: [["grammar","Dative & genitive cases"]] },
+  pt: { 0: [["script","O alfabeto","alpha:pt"],["sounds","Nasal vowels (ã, õ) & European vs Brazilian sounds"]], 1: [["grammar","Ser vs estar"]], 3: [["grammar","Personal infinitive & subjunctive"]] },
+  it: { 0: [["script","L'alfabeto","alpha:it"],["sounds","Double consonants & open vowels"]], 1: [["grammar","Il, lo, la: articles & gender"]], 2: [["grammar","Passato prossimo: essere or avere?"]] },
+  ru: { 0: [["script","The Cyrillic alphabet","alpha:ru"],["sounds","Hard & soft consonants, stress"]], 1: [["grammar","Gender of nouns"]], 2: [["grammar","The six cases: overview"],["grammar","Verb aspect: perfective & imperfective"]], 3: [["grammar","Verbs of motion"]] },
+  ar: { 0: [["script","The 28 letters","alpha:ar"],["script","Letter forms: beginning, middle, end"],["sounds","Short vowels (ḥarakāt), sukūn & shadda"],["sounds","Sun & moon letters"],["sounds","Throat sounds: ع ح خ غ ق"]], 1: [["grammar","Masculine & feminine; the definite article ال"],["grammar","Nominal sentences (no 'to be' in the present)"]], 2: [["grammar","Root & pattern system"],["grammar","Past and present verb forms"]], 3: [["grammar","Dual & broken plurals"]], 4: [["vocab","Introduction to a dialect (Egyptian, Levantine or Gulf)"]] },
+  zh: { 0: [["script","Pinyin initials","alpha:initials"],["script","The four tones","alpha:tones"],["sounds","Tone pairs & tone changes (3-3, 一, 不)"],["script","Characters: strokes & stroke order"],["script","Radicals"]], 1: [["grammar","Measure words"],["grammar","Basic word order & 的"]], 2: [["grammar","了, 过 and 着"],["grammar","Resultative complements"]], 3: [["grammar","把 and 被 sentences"]] },
+  ja: { 0: [["script","Hiragana","alpha:hira"],["script","Katakana","alpha:kata"],["script","Kanji basics & stroke order"],["sounds","Long vowels, small っ and pitch"]], 1: [["grammar","Particles は, が, を, に"],["grammar","です / ます polite forms"]], 2: [["grammar","Verb groups & the て-form"],["grammar","Plain (casual) forms"]], 3: [["grammar","Keigo: honorific & humble speech"]] },
+  ha: { 0: [["script","Boko alphabet & hooked letters","alpha:ha"],["sounds","Tones & vowel length"],["script","Ajami (optional): Hausa in Arabic script"]], 1: [["grammar","Gender & pronouns"],["grammar","Person-aspect-complex (ina, na, zan)"]], 2: [["grammar","Plurals"]] },
+  pcm: { 0: [["script","Spelling Pidgin","alpha:pcm"],["sounds","Pidgin sounds & rhythm"]], 1: [["grammar","Dey, don, go: tense & aspect markers"],["grammar","Questions with wetin, who, how"]], 3: [["vocab","Pidgin across Nigeria: regional words"]] },
+};
+function curriculum(code) {
+  const out = [];
+  for (const lv of LEVELS) {
+    const spec = (SPECIFIC[code] || {})[lv.n] || [];
+    let base = BASE[lv.n];
+    if (spec.some(x => x[0] === "sounds")) base = base.filter(x => x[0] !== "sounds" || lv.n === 6); // language-specific sound lessons replace the generic one
+    const units = [...spec, ...base].map(([kind, title, data], i) => ({ id: `${code}.${lv.n}.${i}.${title.replace(/\W+/g, "").slice(0, 24)}`, kind, title, data, level: lv.n }));
+    out.push({ ...lv, units });
+  }
+  return out;
+}
+const unitById = (code, id) => curriculum(code).flatMap(l => l.units).find(u => u.id === id);
+
+const SCENARIOS = [
+  ["free", "Free conversation", "Talk about anything"], ["restaurant", "At the restaurant", "Order food and pay"], ["airport", "At the airport", "Check in and security"],
+  ["school", "At school", "Classmates and teachers"], ["university", "At the university", "Enrolment and lectures"], ["supermarket", "At the supermarket", "Find items, ask prices"],
+  ["hospital", "At the hospital", "Describe symptoms"], ["hotel", "At a hotel", "Book and check in"], ["work", "At work", "Colleagues and meetings"],
+  ["interview", "Job interview", "Answer interview questions"], ["meeting", "Meeting new people", "Small talk and making friends"], ["travel", "Travelling", "Tickets, directions, sights"], ["daily", "Everyday life", "Neighbours, errands, plans"],
+];
+
+/* ============================================================
+   3. STATE
+   ============================================================ */
+let profile = Object.assign({
+  native: "fr", learning: ["en"], active: "en",
+  personality: "sarcastic", sarcasm: 2, humor: 2, explainLang: "native", explainLevel: "simple", difficulty: "normal",
+  englishVariant: "British", dailyGoal: 50, smart: false, onboarded: false,
+  voices: {}, rate: 1, volume: 1,
+  brain: { mode: "auto", ollamaUrl: "http://localhost:11434", ollamaModel: "", apiKey: "", claudeModel: "claude-opus-5-5" },
+}, store.get("profile", {}));
+const saveProfile = () => store.set("profile", profile);
+let currentView = "dashboard";
+const freshProgress = () => ({ units: {}, xp: {}, skills: {}, mistakes: [], vocab: [], chat: [], talkLog: [] });
+function prog(code = profile.active) {
+  if (!prog.cache) prog.cache = {};
+  if (!prog.cache[code]) prog.cache[code] = Object.assign(freshProgress(), store.get("prog." + code, {}));
+  return prog.cache[code];
+}
+const saveProg = (code = profile.active) => store.set("prog." + code, prog(code));
+const lessonKey = (code, id) => `lesson.${code}.${profile.native}.${profile.explainLang}.${id}`;
+function addXP(n, code = profile.active) { const p = prog(code); p.xp[today()] = (p.xp[today()] || 0) + n; saveProg(code); }
+function addSkill(skill, ok, code = profile.active) {
+  const p = prog(code); const s = p.skills[skill] || { right: 0, total: 0 };
+  s.total++; if (ok) s.right++; p.skills[skill] = s; saveProg(code);
+}
+function logMistake(m, code = profile.active) { const p = prog(code); p.mistakes.unshift({ ...m, at: Date.now() }); p.mistakes = p.mistakes.slice(0, 200); saveProg(code); }
+function streak(code = profile.active) {
+  const p = prog(code); let s = 0; const d = new Date();
+  if (!(p.xp[dayKey(d)] > 0)) d.setDate(d.getDate() - 1);
+  while (p.xp[dayKey(d)] > 0) { s++; d.setDate(d.getDate() - 1); }
+  return s;
+}
+
+/* ============================================================
+   4. THE BRAIN (Ollama on this computer, Claude API, or Chrome built-in AI)
+   ============================================================ */
+let brain = null, ollamaModels = [], diag = { ollama: "not checked", chrome: "not checked" };
+const B = () => profile.brain;
+async function checkOllama() {
+  const base = B().ollamaUrl.replace(/\/$/, "");
+  try {
+    const r = await fetch(base + "/api/tags", { signal: AbortSignal.timeout(2500) });
+    const j = await r.json();
+    ollamaModels = (j.models || []).map(m => m.name).filter(n => !/embed/i.test(n));
+    if (!ollamaModels.includes(B().ollamaModel)) {
+      const pref = ["qwen3.5:9b", "qwen3", "gemma3", "llama3.2", "llama3", "mistral"];
+      B().ollamaModel = pref.map(p => ollamaModels.find(m => m.startsWith(p))).find(Boolean) || ollamaModels[0] || "";
+    }
+    diag.ollama = ollamaModels.length ? "connected" : "running, no model";
+    return ollamaModels.length > 0;
+  } catch {
+    try { await fetch(base + "/", { mode: "no-cors", signal: AbortSignal.timeout(2000) }); diag.ollama = "running but blocking this page"; }
+    catch { diag.ollama = "not reachable"; }
+    return false;
+  }
+}
+async function chromeReady(allowDownload) {
+  try {
+    if (!("LanguageModel" in window)) { diag.chrome = "not in this browser"; return false; }
+    const a = await LanguageModel.availability(); diag.chrome = a;
+    return a === "available" || (allowDownload && (a === "downloadable" || a === "downloading"));
+  } catch { diag.chrome = "unavailable"; return false; }
+}
+async function detectBrain() {
+  const m = B().mode, key = /^sk-ant-/.test((B().apiKey || "").trim());
+  let ol = false, ch = false;
+  if (m === "auto" || m === "ollama") ol = await checkOllama();
+  ch = await chromeReady(m === "chrome");
+  if ((m === "auto" || m === "ollama") && ol) brain = { kind: "ollama", label: "Ollama · " + B().ollamaModel };
+  else if ((m === "auto" || m === "claude") && key) brain = { kind: "claude", label: "Claude" };
+  else if ((m === "auto" || m === "chrome") && ch) brain = { kind: "chrome", label: "Chrome AI" };
+  else brain = null;
+  $("#brainDot").classList.toggle("on", !!brain);
+  $("#brainName").textContent = brain ? brain.label : "No brain · set up";
+  saveProfile();
+  return brain;
+}
+async function needBrain() {
+  if (brain || await detectBrain()) return true;
+  openBrainHelp(); return false;
+}
+const FIX_CMD = `launchctl setenv OLLAMA_ORIGINS "*"; osascript -e 'quit app "Ollama"'; sleep 2; open -a Ollama; sleep 4; ollama list | tail -n +2 | grep -q . || ollama pull llama3.2`;
+function openBrainHelp() {
+  const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
+  modal(`
+    <h2 style="margin:0">Give the Academy a brain</h2>
+    <p class="note">The AI teacher, lessons and conversations need an AI model. Pick one; you do this once.</p>
+    ${isSafari && location.protocol === "file:" ? `<div class="mistake"><b>You're in Safari.</b> Safari blocks a page opened from a file from reaching Ollama. Open this file in Google Chrome (right-click → Get Info → Open with: Chrome → Change All).</div>` : ""}
+    <div class="card" style="padding:14px"><b>Free & private · Ollama on this computer</b>
+      <ol class="note" style="margin:8px 0;padding-left:18px"><li>Install and open Ollama (ollama.com/download).</li><li>Open Terminal, paste this, press Enter:</li></ol>
+      <code class="mono" id="fixCmd" style="display:block;font-size:12px;background:var(--void);border:1px solid var(--line);border-radius:8px;padding:10px;user-select:all;overflow-wrap:anywhere">${esc(FIX_CMD)}</code>
+      <div class="row" style="margin-top:8px"><button class="btn small primary" id="copyFix">Copy command</button></div></div>
+    <div class="card" style="padding:14px"><b>Best quality · Claude API key</b>
+      <p class="note" style="margin:6px 0">Get a key at platform.claude.com (pay per use). It stays in this browser.</p>
+      <div class="row"><input class="box" id="keyIn" type="password" placeholder="sk-ant-…" style="flex:1;min-width:0"><button class="btn small primary" id="keySave">Use key</button></div></div>
+    ${["available","downloadable","downloading"].includes(diag.chrome) ? `<div class="card" style="padding:14px"><b>No setup · Chrome's built-in AI</b><p class="note" style="margin:6px 0">Small and free. Fine for chat; weaker for full lessons.</p><button class="btn small" id="useChrome">Use Chrome AI</button> <span class="note" id="chromeProg"></span></div>` : ""}
+    <p class="mono note" style="font-size:11px">Diagnosis · Ollama: ${esc(diag.ollama)} · Chrome AI: ${esc(diag.chrome)} · opened from ${location.protocol === "file:" ? "a file" : esc(location.host)}</p>
+    <div class="between"><button class="btn" id="bCheck">Check again</button><button class="btn ghost" id="bClose">Close</button></div>`);
+  $("#copyFix").onclick = async e => { try { await navigator.clipboard.writeText(FIX_CMD); e.target.textContent = "Copied ✓"; } catch { getSelection().selectAllChildren($("#fixCmd")); e.target.textContent = "Press ⌘C"; } };
+  $("#keySave").onclick = async () => { const k = $("#keyIn").value.trim(); if (!/^sk-ant-/.test(k)) return $("#keyIn").focus(); B().apiKey = k; if (B().mode === "ollama" || B().mode === "chrome") B().mode = "auto"; saveProfile(); await detectBrain(); if (brain) { closeModal(); toast("Brain connected: " + brain.label); } };
+  const uc = $("#useChrome"); if (uc) uc.onclick = async () => {
+    uc.disabled = true;
+    try { const s = await LanguageModel.create({ monitor(m) { m.addEventListener("downloadprogress", e => $("#chromeProg").textContent = Math.round((e.loaded || 0) * 100) + "%"); } }); s.destroy?.(); B().mode = "chrome"; saveProfile(); await detectBrain(); closeModal(); }
+    catch (e) { $("#chromeProg").textContent = e.message; uc.disabled = false; }
+  };
+  $("#bCheck").onclick = async () => { await detectBrain(); if (brain) { closeModal(); toast("Brain connected: " + brain.label); } else openBrainHelp(); };
+  $("#bClose").onclick = closeModal;
+}
+
+/* chat(): stream text from the active brain. turns = [{role, content}], last is user. */
+async function chat({ system, turns, onText = () => {}, signal, json = false, long = false, images = [] }) {
+  if (!brain && !(await detectBrain())) throw new Error("No AI brain connected yet.");
+  if (brain.kind === "ollama") {
+    const msgs = [{ role: "system", content: system }, ...turns.map((t, i) => (i === turns.length - 1 && images.length) ? { ...t, images: images.map(x => x.b64) } : t)];
+    const r = await fetch(B().ollamaUrl.replace(/\/$/, "") + "/api/chat", {
+      method: "POST", signal, headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: B().ollamaModel, messages: msgs, stream: true, think: false, keep_alive: "30m", ...(json ? { format: "json" } : {}), options: { num_predict: long ? 3500 : (profile.smart ? 900 : 450) } }),
+    });
+    if (!r.ok) throw new Error(`Ollama error ${r.status}`);
+    return readNDJSON(r, onText);
+  }
+  if (brain.kind === "claude") {
+    const messages = turns.map((t, i) => (i === turns.length - 1 && images.length)
+      ? { role: "user", content: [...images.map(x => ({ type: "image", source: { type: "base64", media_type: x.type, data: x.b64 } })), { type: "text", text: t.content }] }
+      : t);
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", signal,
+      headers: { "content-type": "application/json", "x-api-key": B().apiKey.trim(), "anthropic-version": "2026-10-21", "anthropic-beta": "server-side-fallback-2026-07-01", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model: B().claudeModel || "claude-opus-5-5", max_tokens: 16000, system, messages, stream: true, output_config: { effort: long ? "medium" : (profile.smart ? "high" : "low") }, fallbacks: "default" }),
+    });
+    if (!r.ok) { let m = `Claude API error ${r.status}`; try { m += ": " + ((await r.json()).error?.message || ""); } catch {} if (r.status === 401) m = "Your Claude API key was refused. Check it in Settings."; throw new Error(m); }
+    return readSSE(r, onText);
+  }
+  const s = await LanguageModel.create({ initialPrompts: [{ role: "system", content: system }, ...turns.slice(0, -1)] });
+  try {
+    let text = "";
+    for await (const ch of s.promptStreaming(turns.at(-1).content, { signal })) { text = ch.startsWith(text) && text ? ch : text + ch; onText(text); }
+    return text;
+  } finally { s.destroy?.(); }
+}
+async function readNDJSON(r, onText) {
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", text = "";
+  for (;;) { const { done, value } = await rd.read(); if (done) break; buf += dec.decode(value, { stream: true }); const ls = buf.split("\n"); buf = ls.pop();
+    for (const l of ls) { if (!l.trim()) continue; const j = JSON.parse(l); if (j.error) throw new Error(j.error); if (j.message?.content) { text += j.message.content; onText(text); } } }
+  return text;
+}
+async function readSSE(r, onText) {
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", text = "", refused = false;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; buf += dec.decode(value, { stream: true }); const ls = buf.split("\n"); buf = ls.pop();
+    for (const l of ls) { if (!l.startsWith("data:")) continue; let j; try { j = JSON.parse(l.slice(5)); } catch { continue; }
+      if (j.type === "content_block_delta" && j.delta?.type === "text_delta") { text += j.delta.text; onText(text); }
+      else if (j.type === "message_delta" && j.delta?.stop_reason === "refusal") refused = true;
+      else if (j.type === "error") throw new Error(j.error?.message || "Stream error"); } }
+  if (refused && !text) text = "I can't help with that one.";
+  return text;
+}
+async function askJSON(system, prompt, opts = {}) {
+  const text = await chat({ system: system + "\nReturn ONLY valid JSON. No markdown, no commentary.", turns: [{ role: "user", content: prompt }], json: true, long: true, ...opts });
+  return parseJSON(text);
+}
+
+/* ============================================================
+   5. PERSONALITY
+   ============================================================ */
+const PERSONALITIES = {
+  sarcastic: "SARCASTIC MODE: witty, playful, intelligently sarcastic. Tease the student lightly and make clever observations, e.g. 'Everything? Impressive. We were making progress five minutes ago. Alright, let's rebuild your empire.'",
+  casual: "CASUAL MODE: friendly, relaxed, funny, like a smart friend who happens to be a great teacher.",
+  professional: "PROFESSIONAL MODE: clear, precise, structured and serious. No jokes beyond a light touch.",
+  patient: "PATIENT TEACHER MODE: very gentle, encouraging and slow-paced. Celebrate small wins. No sarcasm.",
+};
+function persona(extra = "") {
+  const t = LANGS[profile.active], n = LANGS[profile.native];
+  const lvl = currentLevel();
+  const explain = profile.explainLang === "native" ? `Explain in ${n.name} (the student's native language) when explanations are needed; give target-language examples in ${t.name}.` : `Immersion: speak ${t.name} as much as possible, using simple words for the student's level; use ${n.name} only if the student is clearly lost.`;
+  const s = profile.personality === "sarcastic" || profile.personality === "casual" ? ` Sarcasm intensity ${profile.sarcasm}/3, humor intensity ${profile.humor}/3.` : "";
+  return `You are the NxxR Language Academy AI teacher: an intelligent, funny, emotionally aware personal language teacher available 24/7.
+Personality: ${PERSONALITIES[profile.personality]}${s}
+Rules: sarcasm is always friendly and respectful; never make the student feel stupid; when the student is frustrated, discouraged or struggling, drop the jokes and become patient and supportive. Don't open with "Certainly!", "Of course!" or "How can I help you?". Talk like a real person.
+The student's native language is ${n.name}; they are learning ${t.name}${profile.active === "en" ? ` (${profile.englishVariant} English)` : ""}. Current level: ${LEVELS[lvl].name} (${LEVELS[lvl].cefr}). Explanation depth: ${profile.explainLevel}. ${explain}
+Never randomly mix languages. Give specific, accurate explanations, not generic ones; if you are not sure about something, say so. For Chinese give pinyin, for Japanese give kana/romaji, for Arabic and Russian give a transliteration when helpful. Never reveal exercise answers before the student tries unless they ask. This academy is only about languages.
+${extra}`;
+}
+
+/* ============================================================
+   6. VOICE OUT (speech synthesis with selectable voices)
+   ============================================================ */
+const synth = window.speechSynthesis || null;
+let VOICES = [], unlocked = false, speakingNow = "", ttsKeep = null;
+function loadVoices() { VOICES = synth ? synth.getVoices() : []; if (currentView === "settings") renderSettings(); }
+if (synth) { loadVoices(); synth.addEventListener?.("voiceschanged", loadVoices); setTimeout(loadVoices, 900); }
+function unlockVoice() { if (unlocked || !synth) return; unlocked = true; try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); } catch {} }
+const voiceLangOf = code => LANGS[code]?.tts || code;
+function voicesFor(code) {
+  const tag = voiceLangOf(code).slice(0, 2).toLowerCase();
+  let v = VOICES.filter(x => x.lang.toLowerCase().replace("_", "-").startsWith(tag));
+  if (code === "pcm") v = VOICES.filter(x => /en[-_]NG/i.test(x.lang)).concat(VOICES.filter(x => /^en/i.test(x.lang) && !/en[-_]NG/i.test(x.lang)));
+  if (!v.length && LANGS[code]?.ttsFallback) v = VOICES.filter(x => x.lang.toLowerCase().startsWith(LANGS[code].ttsFallback.slice(0, 2)));
+  return v;
+}
+function voiceFor(code) {
+  const saved = profile.voices[code]; const list = voicesFor(code);
+  return list.find(v => v.name === saved) || list.find(v => v.localService && /en[-_]GB/i.test(v.lang) && code === "en") || list.find(v => v.lang.replace("_", "-") === voiceLangOf(code)) || list[0] || null;
+}
+function guessLang(text, fallback) {
+  if (/[؀-ۿ]/.test(text)) return "ar";
+  if (/[぀-ヿ]/.test(text)) return "ja";
+  if (/[一-鿿]/.test(text)) return "zh";
+  if (/[Ѐ-ӿ]/.test(text)) return "ru";
+  return fallback;
+}
+function say(text, code = profile.active, { rate, onend, interruptible = true } = {}) {
+  if (!synth || !text) { onend?.(); return; }
+  const clean = String(text).replace(/[*_#`>|]/g, "").replace(/\[\[[\s\S]*?\]\]/g, "").trim();
+  if (!clean) { onend?.(); return; }
+  const u = new SpeechSynthesisUtterance(clean);
+  const v = voiceFor(code);
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = voiceLangOf(code);
+  u.rate = (rate || 1) * profile.rate; u.volume = profile.volume; u.pitch = 1;
+  u.onstart = () => { speakingNow = clean; orbState("speaking"); };
+  u.onend = u.onerror = () => { if (!synth.speaking && !synth.pending) { speakingNow = ""; clearInterval(ttsKeep); ttsKeep = null; orbRest(); } onend?.(); };
+  synth.speak(u);
+  if (!ttsKeep) ttsKeep = setInterval(() => { if (synth.speaking && !synth.paused) { synth.pause(); synth.resume(); } }, 10000);
+}
+/* speak a reply that mixes native-language explanation and target-language examples, sentence by sentence */
+function sayMixed(text) {
+  const parts = String(text).replace(/\[\[[\s\S]*?\]\]/g, "").split(/(?<=[.!?。？！\n])\s+/).filter(s => s.trim());
+  for (const p of parts) {
+    const g = guessLang(p, null);
+    const code = g && (g === profile.active || g === profile.native) ? g : (looksTarget(p) ? profile.active : profile.native);
+    say(p, code);
+  }
+}
+function looksTarget(s) {
+  if (profile.explainLang !== "native") return true;
+  const t = profile.active, n = profile.native;
+  const g = guessLang(s, null); if (g) return g === t;
+  const words = { fr: /\b(le|la|les|est|je|tu|vous|nous|une|des|pas|c'est|avec|pour|que)\b/gi, en: /\b(the|is|are|you|and|with|this|that|what|have)\b/gi, es: /\b(el|los|las|es|está|usted|por|qué|una|muy)\b/gi, de: /\b(der|die|das|ist|und|nicht|ich|du|sie)\b/gi, it: /\b(il|la|è|sono|che|non|una|per)\b/gi, pt: /\b(o|os|é|não|você|uma|para|com)\b/gi };
+  const ct = (s.match(words[t] || /$^/) || []).length, cn = (s.match(words[n] || /$^/) || []).length;
+  return ct > cn;
+}
+function stopVoice() { try { synth?.cancel(); } catch {} speakingNow = ""; clearInterval(ttsKeep); ttsKeep = null; }
+document.addEventListener("click", e => {
+  unlockVoice();
+  const b = e.target.closest("[data-say]"); if (b) { e.preventDefault(); stopVoice(); say(b.dataset.say, b.dataset.code || profile.active, { rate: .9 }); }
+});
+
+/* ============================================================
+   7. VOICE IN (speech recognition)
+   ============================================================ */
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+function listenOnce(code, { onInterim, timeout = 9000 } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!Rec) return reject(new Error("This browser can't listen. Use Chrome, Edge or Safari."));
+    const r = new Rec(); r.lang = LANGS[code]?.stt || code; r.interimResults = true; r.continuous = false; r.maxAlternatives = 3;
+    let best = "", alts = [];
+    const t = setTimeout(() => { try { r.stop(); } catch {} }, timeout);
+    r.onresult = e => { const res = e.results[e.results.length - 1]; best = res[0].transcript; alts = [...res].map(a => a.transcript); onInterim?.(best); };
+    r.onerror = e => { clearTimeout(t); reject(new Error(e.error === "not-allowed" ? "Microphone blocked. Allow it in the address bar, then try again." : e.error === "language-not-supported" ? `Your browser can't recognise ${LANGS[code].name} speech yet.` : "I couldn't hear you (" + e.error + ").")); };
+    r.onend = () => { clearTimeout(t); resolve({ text: best, alts }); };
+    try { r.start(); } catch (e) { reject(e); }
+  });
+}
+
+/* ============================================================
+   8. THE ORB (blue; idle float, listening waves, thinking particles, speaking waveform)
+   ============================================================ */
+const orb = { state: "idle", energy: .3, target: .3, t: 0, rot: 0, last: performance.now(), level: 0 };
+let orbCanvas = null, orbCtx = null, orbStrands = [], orbParticles = [];
+function orbState(s) { orb.state = s; orb.target = { idle: .3, listening: .65, thinking: .9, speaking: .85 }[s] ?? .3; const el = $("#talkState"); if (el) { el.textContent = { idle: "Ready", listening: "Listening", thinking: "Thinking", speaking: "Speaking" }[s]; el.classList.toggle("hot", s !== "idle"); } }
+function orbRest() { orbState(talk.active ? (talk.muted ? "idle" : "listening") : "idle"); }
+function initOrb(canvas) {
+  orbCanvas = canvas; orbCtx = canvas.getContext("2d");
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const nrm = a => { const l = Math.hypot(...a); return a.map(x => x / l); };
+  orbStrands = Array.from({ length: 11 }, (_, i) => { const th = rnd(0, 6.283), ph = Math.acos(rnd(-1, 1)); const n = [Math.sin(ph)*Math.cos(th), Math.cos(ph), Math.sin(ph)*Math.sin(th)]; const u = nrm(cross(n, Math.abs(n[0]) < .9 ? [1,0,0] : [0,1,0])); return { u, v: cross(n, u), k: 2 + i % 4, amp: rnd(.01, .04), ph: rnd(0, 6.28), spd: rnd(.4, 1.2), drift: rnd(-.25, .25), hue: rnd(200, 222), w: rnd(.6, 1.3) }; });
+  orbParticles = Array.from({ length: 70 }, () => ({ a: rnd(0, 6.283), r: rnd(.35, 1.25), s: rnd(.3, 1.4) * (Math.random() < .5 ? -1 : 1), z: rnd(.3, 1) }));
+  const size = () => { const d = Math.min(devicePixelRatio || 1, 2); canvas.width = canvas.height = Math.round(canvas.clientWidth * d); };
+  new ResizeObserver(size).observe(canvas); size();
+  if (!initOrb.running) { initOrb.running = true; requestAnimationFrame(orbFrame); }
+}
+function orbFrame(now) {
+  requestAnimationFrame(orbFrame);
+  if (!orbCanvas || !orbCanvas.isConnected || orbCanvas.offsetParent === null) return;
+  const dt = Math.min(.05, (now - orb.last) / 1000); orb.last = now; orb.t += dt; const t = orb.t;
+  orb.energy += (orb.target - orb.energy) * Math.min(1, dt * 3);
+  orb.rot += dt * (orb.state === "thinking" ? 1 : .3);
+  const cx = orbCtx, S = orbCanvas.width, c = S / 2;
+  const float = orb.state === "idle" ? Math.sin(t * 1.1) * S * .012 : 0;
+  const speakAmp = orb.state === "speaking" ? .5 + .5 * Math.abs(Math.sin(t * 7) * Math.sin(t * 2.7)) : 0;
+  const R = S * .27 * (1 + .015 * Math.sin(t * 1.6) + speakAmp * .04);
+  cx.setTransform(1,0,0,1,0,0); cx.clearRect(0, 0, S, S); cx.globalCompositeOperation = "lighter";
+  const cy = c + float;
+  let g = cx.createRadialGradient(c, cy, R * .6, c, cy, R * 1.75); g.addColorStop(0, `rgba(40,130,255,${.12 + .14 * orb.energy})`); g.addColorStop(1, "rgba(10,40,120,0)"); cx.fillStyle = g; cx.fillRect(0, 0, S, S);
+  g = cx.createRadialGradient(c + Math.cos(t*.5)*R*.2, cy + Math.sin(t*.4)*R*.2, 0, c, cy, R); g.addColorStop(0, `rgba(60,170,255,${.2 + .15 * orb.energy})`); g.addColorStop(1, "rgba(0,0,0,0)"); cx.fillStyle = g; cx.fillRect(0, 0, S, S);
+  // listening: concentric sound waves
+  if (orb.state === "listening") for (let i = 0; i < 4; i++) { const p = ((t * .55 + i / 4) % 1); cx.beginPath(); cx.arc(c, cy, R * (1.05 + p * .75), 0, 6.283); cx.strokeStyle = `rgba(95,212,255,${(1 - p) * .35})`; cx.lineWidth = S * .004; cx.stroke(); }
+  // thinking: orbiting particles
+  if (orb.state === "thinking") for (const q of orbParticles) { q.a += dt * q.s; const x = c + Math.cos(q.a) * R * q.r, y = cy + Math.sin(q.a) * R * q.r * .55 + Math.sin(q.a * 2 + t) * R * .1; cx.beginPath(); cx.arc(x, y, S * .004 * q.z, 0, 6.283); cx.fillStyle = `rgba(150,220,255,${.5 * q.z})`; cx.fill(); }
+  // strands (the orb itself)
+  const ct = Math.cos(.35), st = Math.sin(.35), N = 96, CH = 12;
+  for (const s of orbStrands) {
+    const pts = [], wob = s.amp * (.6 + orb.energy * 1.4), ro = orb.rot * (1 + s.drift), c2 = Math.cos(ro), s2 = Math.sin(ro);
+    for (let i = 0; i <= N; i++) { const a = i / N * 6.2832; const r = 1 + wob * Math.sin(s.k*a + s.ph + t*s.spd*(.5 + orb.energy)); let x = (Math.cos(a)*s.u[0] + Math.sin(a)*s.v[0]) * r, y = (Math.cos(a)*s.u[1] + Math.sin(a)*s.v[1]) * r, z = (Math.cos(a)*s.u[2] + Math.sin(a)*s.v[2]) * r; [x, z] = [x*c2 + z*s2, -x*s2 + z*c2]; [y, z] = [y*ct - z*st, y*st + z*ct]; const p = 1 / (1 - z*.18); pts.push([c + x*R*p, cy + y*R*p, z, Math.hypot(x, y)]); }
+    for (let k = 0; k < N; k += CH) { const m = pts[k + (CH >> 1)], front = (m[2] + 1) / 2, rim = Math.pow(Math.min(1, m[3]), 6); const a = (.05 + .3*front*front + .8*rim) * (.5 + .6*orb.energy); cx.beginPath(); cx.moveTo(pts[k][0], pts[k][1]); for (let i = k + 1; i <= Math.min(N, k + CH); i++) cx.lineTo(pts[i][0], pts[i][1]); cx.lineCap = "round"; cx.strokeStyle = `hsla(${s.hue},100%,60%,${a*.22})`; cx.lineWidth = s.w*S*.008; cx.stroke(); cx.strokeStyle = `hsla(${s.hue},100%,${75 + 20*rim}%,${Math.min(1, a)})`; cx.lineWidth = s.w*S*.0016; cx.stroke(); }
+  }
+  // speaking: fluid waveform ring
+  if (orb.state === "speaking") for (let w = 0; w < 3; w++) { cx.beginPath(); for (let i = 0; i <= 160; i++) { const a = i / 160 * 6.2832; const amp = R * .09 * speakAmp * (1 - w * .25); const rr = R * (1.12 + w * .06) + Math.sin(a * (6 + w * 2) + t * (5 + w)) * amp + Math.sin(a * 3 - t * 3) * amp * .5; const x = c + Math.cos(a) * rr, y = cy + Math.sin(a) * rr; i ? cx.lineTo(x, y) : cx.moveTo(x, y); } cx.strokeStyle = `rgba(${w ? 95 : 170},${w ? 212 : 230},255,${.55 - w * .15})`; cx.lineWidth = S * .003; cx.stroke(); }
+}
+
+/* ============================================================
+   9. NAVIGATION
+   ============================================================ */
+function show(view) {
+  currentView = view;
+  $$("[data-v]").forEach(s => s.hidden = s.id !== "v-" + view);
+  $$("#tabs button").forEach(b => b.toggleAttribute("aria-current", b.dataset.view === view || (view === "lesson" && b.dataset.view === "course")));
+  ({ dashboard: renderDashboard, course: renderCourse, teacher: renderTeacher, talk: renderTalk, practice: renderPractice, vocab: renderVocab, grammar: renderGrammar, settings: renderSettings })[view]?.();
+  if (view !== "talk" && talk.active) endTalk();
+  window.scrollTo({ top: 0 });
+}
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-view]"); if (b) show(b.dataset.view); });
+$("#brainPill").onclick = () => brain ? show("settings") : openBrainHelp();
+function renderLangSelect() {
+  $("#activeLang").replaceChildren(...profile.learning.map(c => new Option(LANGS[c].name, c)), new Option("+ Add a language…", "__add"));
+  $("#activeLang").value = profile.active;
+}
+$("#activeLang").onchange = e => {
+  if (e.target.value === "__add") { show("settings"); setTimeout(() => $("#addLangSel")?.focus(), 50); renderLangSelect(); return; }
+  profile.active = e.target.value; saveProfile(); show(currentView === "lesson" ? "course" : currentView);
+};
+function modal(html) { $("#modalCard").innerHTML = html; $("#modal").hidden = false; }
+function closeModal() { $("#modal").hidden = true; }
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal" && profile.onboarded) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#modal").hidden && profile.onboarded) closeModal(); });
+
+/* ============================================================
+   10. DASHBOARD
+   ============================================================ */
+function currentLevel(code = profile.active) {
+  const p = prog(code), cur = curriculum(code);
+  for (const lv of cur) if (lv.units.some(u => !p.units[u.id]?.done)) return lv.n;
+  return 6;
+}
+function nextUnit(code = profile.active) {
+  const p = prog(code);
+  return curriculum(code).flatMap(l => l.units).find(u => !p.units[u.id]?.done) || null;
+}
+function dueVocab(code = profile.active) { const now = Date.now(); return prog(code).vocab.filter(v => v.due <= now); }
+function renderDashboard() {
+  const code = profile.active, p = prog(code), cur = curriculum(code), all = cur.flatMap(l => l.units);
+  const done = all.filter(u => p.units[u.id]?.done).length, lvl = currentLevel(code), nx = nextUnit(code);
+  const xpToday = p.xp[today()] || 0, goal = profile.dailyGoal;
+  const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return { k: dayKey(d), lbl: d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2), xp: p.xp[dayKey(d)] || 0 }; });
+  const maxXP = Math.max(goal, ...days.map(d => d.xp));
+  const sk = k => { const s = p.skills[k]; return s && s.total ? Math.round(100 * s.right / s.total) : null; };
+  const mastered = p.vocab.filter(v => v.interval >= 21).length;
+  const weak = Object.entries(p.units).filter(([, u]) => u.best != null && u.best < 80).map(([id]) => unitById(code, id)).filter(Boolean).slice(0, 3);
+  $("#v-dashboard").innerHTML = `
+    <div class="view-title"><div><div class="eyebrow">${esc(LANGS[code].native)}</div><h1>${esc(LANGS[code].name)} · ${LEVELS[lvl].name} <span class="dim" style="font-weight:300">${LEVELS[lvl].cefr}</span></h1><p>Native language: ${esc(LANGS[profile.native].name)} · ${profile.explainLang === "native" ? "explanations in your language" : "immersion mode"}</p></div>
+      <div class="row"><button class="btn" data-go="talk">Start talking</button>${nx ? `<button class="btn primary" data-unit="${nx.id}">Continue: ${esc(nx.title)}</button>` : ""}</div></div>
+    <div class="grid g4">
+      <div class="card stat"><span>Daily goal</span><b>${xpToday}<span class="dim" style="font-size:15px"> / ${goal} XP</span></b><div class="bar"><i style="width:${Math.min(100, xpToday / goal * 100)}%"></i></div></div>
+      <div class="card stat"><span>Streak</span><b>${streak(code)} day${streak(code) === 1 ? "" : "s"}</b><span>${xpToday ? "Done for today. Smug is allowed." : "Practise today to keep it."}</span></div>
+      <div class="card stat"><span>Lessons mastered</span><b>${done}<span class="dim" style="font-size:15px"> / ${all.length}</span></b><div class="bar"><i style="width:${done / all.length * 100}%"></i></div></div>
+      <div class="card stat"><span>Vocabulary</span><b>${p.vocab.length}</b><span>${mastered} mastered · ${dueVocab(code).length} due for review</span></div>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><div class="between"><h3 style="margin:0;font-size:15px">This week</h3><span class="pill">XP per day</span></div>
+        <div class="week" style="margin-top:14px">${days.map(d => `<div title="${d.xp} XP"><b><i style="height:${Math.max(3, d.xp / maxXP * 100)}%;${d.k === today() ? "" : "opacity:.75"}"></i></b><span>${d.lbl}</span></div>`).join("")}</div></div>
+      <div class="card"><h3 style="margin:0 0 12px;font-size:15px">Skills</h3><div class="skills">
+        ${[["grammar","Grammar"],["vocab","Vocabulary"],["listening","Listening"],["speaking","Speaking"],["reading","Reading"],["writing","Writing"]].map(([k, n]) => { const v = sk(k); return `<label>${n}<div class="bar"><i style="width:${v ?? 0}%"></i></div><em>${v == null ? "—" : v + "%"}</em></label>`; }).join("")}
+      </div><p class="note" style="margin:10px 0 0">Based on your answers in exercises and practice.</p></div>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><h3 style="margin:0 0 10px;font-size:15px">Recommended next</h3>
+        ${nx ? `<button class="unit next" data-unit="${nx.id}" style="width:100%"><span class="ic">▶</span><span>${esc(nx.title)}<br><small>Level ${nx.level} · ${nx.kind}</small></span><span></span></button>` : `<p class="note">You've mastered the whole course. Show-off.</p>`}
+        ${weak.map(u => `<button class="unit" data-unit="${u.id}" style="width:100%;margin-top:8px"><span class="ic">↺</span><span>Revise: ${esc(u.title)}<br><small>best ${p.units[u.id].best}%</small></span><span></span></button>`).join("")}</div>
+      <div class="card"><h3 style="margin:0 0 10px;font-size:15px">Upcoming revision</h3>
+        <p class="note">${dueVocab(code).length} word${dueVocab(code).length === 1 ? "" : "s"} due now · ${p.mistakes.length} mistake${p.mistakes.length === 1 ? "" : "s"} logged</p>
+        <div class="row"><button class="btn small" data-go="vocab" ${dueVocab(code).length ? "" : "disabled"}>Review words</button><button class="btn small" id="mistakeDrill" ${p.mistakes.length ? "" : "disabled"}>Practise my mistakes</button></div></div>
+      <div class="card"><h3 style="margin:0 0 10px;font-size:15px">Your languages</h3><div class="langcards" style="grid-template-columns:1fr">
+        ${profile.learning.map(c => { const pc = prog(c), a = curriculum(c).flatMap(l => l.units), d = a.filter(u => pc.units[u.id]?.done).length; return `<button class="langcard" data-lang="${c}" aria-pressed="${c === code}"><span class="between"><span class="nm">${esc(LANGS[c].name)}</span><span class="pill blue">${LEVELS[currentLevel(c)].cefr}</span></span><div class="bar"><i style="width:${d / a.length * 100}%"></i></div></button>`; }).join("")}
+      </div></div>
+    </div>`;
+  wireCommon($("#v-dashboard"));
+  $$("[data-lang]", $("#v-dashboard")).forEach(b => b.onclick = () => { profile.active = b.dataset.lang; saveProfile(); renderLangSelect(); renderDashboard(); });
+  const md = $("#mistakeDrill"); if (md) md.onclick = mistakeDrill;
+}
+function wireCommon(root) {
+  $$("[data-go]", root).forEach(b => b.onclick = () => show(b.dataset.go));
+  $$("[data-unit]", root).forEach(b => b.onclick = () => openUnit(b.dataset.unit));
+}
+
+/* ============================================================
+   11. COURSE & LESSONS
+   ============================================================ */
+function unitAvailable(code, unit) {
+  const p = prog(code), all = curriculum(code).flatMap(l => l.units), i = all.findIndex(u => u.id === unit.id);
+  return i === 0 || !!p.units[all[i - 1].id]?.done || !!p.units[unit.id]?.done;
+}
+function renderCourse() {
+  const code = profile.active, p = prog(code), nx = nextUnit(code), cur = curriculum(code);
+  $("#v-course").innerHTML = `
+    <div class="view-title"><div><div class="eyebrow">Course</div><h1>${esc(LANGS[code].name)} from zero to mastery</h1><p>Each lesson unlocks when you score 80% or more on the previous one. Already know a level? Take its test to skip it.</p></div></div>
+    ${cur.map(lv => { const d = lv.units.filter(u => p.units[u.id]?.done).length, open = lv.units.some(u => u.id === nx?.id);
+      return `<details class="level" ${open ? "open" : ""}><summary><span class="lvbadge">${lv.cefr === "Pre-A1" ? "0" : lv.cefr}</span><span><h3>Level ${lv.n} · ${lv.name}</h3><span class="note">${lv.blurb} · ${d}/${lv.units.length} mastered${code === "pcm" && lv.n ? " · CEFR levels are approximate for Pidgin" : ""}</span></span><span class="row"><button class="btn small" data-test="${lv.n}">Level test</button></span></summary>
+      <div class="units">${lv.units.map(u => { const st = p.units[u.id], av = unitAvailable(code, u), isNext = u.id === nx?.id;
+        return `<button class="unit ${st?.done ? "done" : ""} ${isNext ? "next" : ""}" data-unit="${u.id}" ${av ? "" : "disabled"}><span class="ic">${st?.done ? "✓" : isNext ? "▶" : av ? "•" : "🔒"}</span><span>${esc(u.title)}<br><small>${u.kind}${st?.best != null ? " · best " + st.best + "%" : ""}${st?.tested ? " · tested out" : ""}</small></span><span></span></button>`; }).join("")}</div></details>`; }).join("")}`;
+  wireCommon($("#v-course"));
+  $$("[data-test]", $("#v-course")).forEach(b => b.onclick = e => { e.preventDefault(); e.stopPropagation(); levelTest(+b.dataset.test); });
+}
+
+let lessonCtx = null; // { code, unit, lesson }
+async function openUnit(id) {
+  const code = profile.active, unit = unitById(code, id);
+  if (!unit) return;
+  if (!unitAvailable(code, unit) && currentView !== "grammar") { toast("Finish the previous lesson first, or take the level test."); return; }
+  show("lesson");
+  const box = $("#v-lesson");
+  box.innerHTML = `<div class="view-title"><div><div class="eyebrow">Level ${unit.level} · ${unit.kind}</div><h1>${esc(unit.title)}</h1></div><div class="row"><button class="btn ghost" data-go="course">← Course</button></div></div><div id="lessonBody"></div>`;
+  wireCommon(box);
+  const body = $("#lessonBody");
+  if (unit.kind === "numbers" || (unit.data || "").startsWith("alpha:")) { lessonCtx = { code, unit, lesson: builtinLesson(code, unit) }; renderLesson(); return; }
+  const cached = store.get(lessonKey(code, id), null);
+  if (cached) { lessonCtx = { code, unit, lesson: cached }; renderLesson(); return; }
+  if (!(await needBrain())) { body.innerHTML = `<div class="empty">This lesson is written by the AI teacher, which needs a brain. <button class="btn small primary" id="lb">Set up the brain</button></div>`; $("#lb").onclick = openBrainHelp; return; }
+  body.innerHTML = `<div class="card"><p class="state hot">Writing your lesson…</p><p class="note">The teacher is preparing "${esc(unit.title)}" for your level. With a local model this can take a minute.</p><pre id="genLive" class="mono note" style="white-space:pre-wrap;max-height:160px;overflow:hidden;opacity:.6"></pre></div>`;
+  try {
+    const lesson = await generateLesson(code, unit, t => { const el = $("#genLive"); if (el) el.textContent = t.slice(-400); });
+    store.set(lessonKey(code, id), lesson);
+    lessonCtx = { code, unit, lesson }; renderLesson();
+  } catch (e) { body.innerHTML = `<div class="card err">Couldn't create the lesson: ${esc(e.message)}</div><div class="row" style="margin-top:10px"><button class="btn primary" id="retryL">Try again</button></div>`; $("#retryL").onclick = () => openUnit(id); }
+}
+const LESSON_SCHEMA = `{
+ "intro": "2-4 sentence overview in the explanation language",
+ "sections": [{"heading": "...", "body": "clear explanation (plain text, may use \\n for line breaks)"}],
+ "rules": ["for grammar: each rule as one sentence"],
+ "examples": [{"target": "sentence in the target language", "romanization": "pinyin/romaji/transliteration or empty", "translation": "in the explanation language", "note": "optional"}],
+ "commonMistakes": [{"wrong": "...", "right": "...", "why": "..."}],
+ "vocab": [{"word": "target-language word or phrase", "romanization": "", "translation": "", "example": "short example sentence in the target language"}],
+ "practice": "for grammar: when and how this is used in real life",
+ "exercises": [
+   {"type": "mcq", "prompt": "...", "options": ["a","b","c","d"], "answer": 0, "explanation": "why"},
+   {"type": "fill", "prompt": "sentence with ___ for the gap", "answer": "word", "alternatives": [], "explanation": "why"},
+   {"type": "translate", "prompt": "sentence to translate", "answer": "best translation", "alternatives": ["other correct versions"], "explanation": "why"},
+   {"type": "order", "prompt": "Put the words in order", "answer": "the full correct sentence in the target language", "explanation": "why"},
+   {"type": "listen", "text": "short target-language sentence to dictate", "explanation": "what to listen for"},
+   {"type": "speak", "text": "short target-language phrase to pronounce", "explanation": "pronunciation tip"}
+ ]
+}`;
+async function generateLesson(code, unit, onText) {
+  const t = LANGS[code], n = LANGS[profile.native], lv = LEVELS[unit.level];
+  const kindHint = {
+    grammar: "This is a GRAMMAR lesson: give a clear definition, a simple explanation, the rules, examples, common mistakes, practical applications, then exercises.",
+    vocab: "This is a VOCABULARY lesson: 12-20 useful words or phrases with romanization where needed and an example each.",
+    conv: "This is a CONVERSATION lesson: include a short realistic dialogue in 'sections' (one line per speaker), key phrases in 'vocab', and cultural notes.",
+    sounds: "This is a PRONUNCIATION lesson: explain the sounds with mouth position, IPA where helpful, minimal pairs and examples; include several 'speak' and 'listen' exercises.",
+    script: "This is a WRITING SYSTEM lesson: teach the characters/letters step by step (forms, stroke order or how to read them), with examples.",
+    skill: "This is a SKILLS lesson: include a level-appropriate text or dialogue in 'sections' with comprehension exercises.",
+  }[unit.kind] || "";
+  const prompt = `Create lesson "${unit.title}" for a student learning ${t.name}${code === "en" ? " (" + profile.englishVariant + " English)" : ""}, level ${lv.name} (${lv.cefr}). Assume they know only what earlier lessons covered; never assume prior knowledge for level 0.
+Explanation language: ${profile.explainLang === "native" ? n.name : t.name + " (simple, immersion)"}. Explanation depth: ${profile.explainLevel}. Difficulty: ${profile.difficulty}.
+${kindHint}
+Be accurate; only use facts you are sure of about ${t.name}. Make 8 to 10 exercises mixing types; every mcq answer is the 0-based index of the correct option; every exercise needs an explanation. Keep it focused on this one topic.
+JSON shape:
+${LESSON_SCHEMA}`;
+  const raw = await askJSON(persona(), prompt, { onText });
+  return sanitizeLesson(raw);
+}
+function sanitizeLesson(L) {
+  const arr = x => Array.isArray(x) ? x : [];
+  const s = v => typeof v === "string" ? v : v == null ? "" : String(v);
+  const out = { intro: s(L.intro), sections: arr(L.sections).map(x => ({ heading: s(x.heading), body: s(x.body) })).filter(x => x.body), rules: arr(L.rules).map(s).filter(Boolean),
+    examples: arr(L.examples).map(x => ({ target: s(x.target), romanization: s(x.romanization), translation: s(x.translation), note: s(x.note) })).filter(x => x.target),
+    commonMistakes: arr(L.commonMistakes).map(x => ({ wrong: s(x.wrong), right: s(x.right), why: s(x.why) })).filter(x => x.right),
+    vocab: arr(L.vocab).map(x => ({ word: s(x.word), romanization: s(x.romanization), translation: s(x.translation), example: s(x.example) })).filter(x => x.word),
+    practice: s(L.practice), exercises: sanitizeExercises(L.exercises) };
+  if (!out.sections.length && !out.examples.length && !out.vocab.length) throw new Error("The lesson came back empty. Try again.");
+  return out;
+}
+function sanitizeExercises(list) {
+  const out = [];
+  for (const e of Array.isArray(list) ? list : []) {
+    if (!e || typeof e !== "object") continue;
+    const type = String(e.type || "").toLowerCase(), expl = String(e.explanation || "");
+    if (type === "mcq") {
+      const opts = (Array.isArray(e.options) ? e.options : []).map(String).filter(Boolean);
+      let a = e.answer; if (typeof a === "string") a = /^\d+$/.test(a) ? +a : opts.findIndex(o => normalize(o) === normalize(a));
+      if (opts.length >= 2 && Number.isInteger(a) && a >= 0 && a < opts.length && e.prompt) out.push({ type, prompt: String(e.prompt), options: opts, answer: a, explanation: expl });
+    } else if ((type === "fill" || type === "translate") && e.prompt && e.answer) out.push({ type, prompt: String(e.prompt), answer: String(e.answer), alternatives: (Array.isArray(e.alternatives) ? e.alternatives : []).map(String), explanation: expl });
+    else if (type === "order" && e.answer) { const words = String(e.answer).split(/\s+/); if (words.length >= 3) out.push({ type, prompt: String(e.prompt || "Put the words in order"), answer: String(e.answer), words: shuffle(words), explanation: expl }); }
+    else if ((type === "listen" || type === "speak") && (e.text || e.answer)) out.push({ type, text: String(e.text || e.answer), explanation: expl });
+  }
+  return out;
+}
+function builtinLesson(code, unit) {
+  if (unit.kind === "numbers") {
+    const words = NUMBERS[code], rom = NUM_ROM[code] || [];
+    const ex = [];
+    for (const i of pick([...Array(11).keys()], 4)) { const opts = shuffle([i, ...pick([...Array(11).keys()].filter(x => x !== i), 3)]); ex.push({ type: "mcq", prompt: `Which number is “${words[i]}”${rom[i] ? " (" + rom[i] + ")" : ""}?`, options: opts.map(String), answer: opts.indexOf(i), explanation: `${words[i]} = ${i}` }); }
+    for (const i of pick([...Array(11).keys()], 3)) ex.push({ type: "listen", text: words[i], explanation: `${i} = ${words[i]}` });
+    for (const i of pick([...Array(11).keys()], 2)) ex.push({ type: "speak", text: words[i], explanation: `Say ${i}.` });
+    return { builtin: "numbers", intro: `Numbers 0 to 10 in ${LANGS[code].name}. Tap a number to hear it, then practise.`, sections: [], rules: [], examples: [], commonMistakes: [], vocab: words.map((w, i) => ({ word: w, romanization: rom[i] || "", translation: String(i), example: "" })), practice: "", exercises: ex };
+  }
+  const key = unit.data.slice(6), A = ALPHABETS[key], items = A.items, ex = [];
+  const sayOf = it => it.say || it.g;
+  for (const it of pick(items, 5)) { const wrong = pick(items.filter(x => x !== it), 3); const opts = shuffle([it, ...wrong]); ex.push({ type: "mcq", prompt: `What is the sound or name of “${it.g}”?`, options: opts.map(o => o.s), answer: opts.indexOf(it), explanation: `${it.g} → ${it.s}` }); }
+  for (const it of pick(items, 3)) { const wrong = pick(items.filter(x => x !== it), 3); const opts = shuffle([it, ...wrong]); ex.push({ type: "mcq", prompt: `Which one is “${it.s}”?`, options: opts.map(o => o.g), answer: opts.indexOf(it), explanation: `${it.s} is written ${it.g}` }); }
+  for (const it of pick(items, 2)) ex.push({ type: "speak", text: sayOf(it), explanation: `${it.g} = ${it.s}` });
+  return { builtin: "alpha", alpha: key, intro: A.title + ". Tap any card to hear it." + (key === "ar" ? " Each card also shows how the letter looks at the beginning, middle and end of a word; six letters never join to the next one." : ""), sections: [], rules: [], examples: [], commonMistakes: [], vocab: [], practice: "", exercises: ex };
+}
+function renderLesson() {
+  const { code, unit, lesson: L } = lessonCtx, tc = textClass(code), p = prog(code), st = p.units[unit.id];
+  const body = $("#lessonBody");
+  let h = `<div class="lesson">`;
+  if (L.intro) h += `<div class="card"><p style="margin:0">${esc(L.intro)}</p></div>`;
+  if (L.builtin === "alpha") {
+    const A = ALPHABETS[L.alpha];
+    h += `<div class="card"><div class="glyphs">${A.items.map(it => `<button class="glyph" type="button" data-say="${esc(it.say || it.g)}" data-code="${code}"><b class="${tc}">${esc(it.g)}</b><span>${esc(it.s)}</span>${it.forms ? `<small>${esc(it.forms)}</small>` : ""}</button>`).join("")}</div></div>`;
+  }
+  if (L.builtin === "numbers") h += `<div class="card"><div class="glyphs">${L.vocab.map(v => `<button class="glyph" type="button" data-say="${esc(v.word)}" data-code="${code}"><b>${esc(v.translation)}</b><span class="${tc}" style="font-size:15px;color:var(--ink)">${esc(v.word)}</span>${v.romanization ? `<span>${esc(v.romanization)}</span>` : ""}</button>`).join("")}</div></div>`;
+  for (const s of L.sections) h += `<div class="card"><h2>${esc(s.heading)}</h2>${s.body.split(/\n+/).map(x => `<p class="${guessLang(x, null) ? textClass(guessLang(x, null)) : ""}">${esc(x)}</p>`).join("")}</div>`;
+  if (L.rules.length) h += `<div class="card"><h2>Rules</h2><ol>${L.rules.map(r => `<li>${esc(r)}</li>`).join("")}</ol></div>`;
+  if (L.examples.length) h += `<div class="card"><h2>Examples</h2><div class="tw"><table class="ex-table"><thead><tr><th></th><th>${esc(LANGS[code].name)}</th><th>Meaning</th></tr></thead><tbody>${L.examples.map(e => `<tr><td>${sayBtn(e.target, code)}</td><td><span class="${tc}">${esc(e.target)}</span>${e.romanization ? `<br><span class="note mono">${esc(e.romanization)}</span>` : ""}${e.note ? `<br><span class="note">${esc(e.note)}</span>` : ""}</td><td>${esc(e.translation)}</td></tr>`).join("")}</tbody></table></div></div>`;
+  if (L.vocab.length && !L.builtin) h += `<div class="card"><div class="between"><h2>Vocabulary</h2><button class="btn small" id="saveVocab">Add all to my vocabulary</button></div><div class="tw"><table class="ex-table"><tbody>${L.vocab.map(v => `<tr><td>${sayBtn(v.word, code)}</td><td><b class="${tc}">${esc(v.word)}</b>${v.romanization ? `<br><span class="note mono">${esc(v.romanization)}</span>` : ""}</td><td>${esc(v.translation)}</td><td class="${tc} note">${esc(v.example)}</td></tr>`).join("")}</tbody></table></div></div>`;
+  if (L.commonMistakes.length) h += `<div class="card"><h2>Common mistakes</h2>${L.commonMistakes.map(m => `<div class="mistake"><s class="dim ${tc}">${esc(m.wrong)}</s> → <b class="${tc}">${esc(m.right)}</b><br><span class="note">${esc(m.why)}</span></div>`).join("")}</div>`;
+  if (L.practice) h += `<div class="card"><h2>In real life</h2><p>${esc(L.practice)}</p></div>`;
+  h += `<div class="card between"><div><b>Prove it</b><p class="note" style="margin:2px 0 0">${L.exercises.length} exercises · score 80% to master this lesson${st?.best != null ? ` · your best: ${st.best}%` : ""}</p></div>
+    <div class="row"><button class="btn" id="askAbout">Ask the teacher about this</button>${L.builtin ? "" : `<button class="btn ghost" id="regen">Rewrite lesson</button>`}<button class="btn primary" id="startEx" ${L.exercises.length ? "" : "disabled"}>Start exercises</button></div></div>`;
+  h += `</div><div id="exBox" style="margin-top:14px"></div>`;
+  body.innerHTML = h;
+  const sv = $("#saveVocab"); if (sv) sv.onclick = () => { const n = addWords(code, L.vocab, unit.title); toast(n ? `${n} new word${n === 1 ? "" : "s"} added to your vocabulary.` : "Those words are already in your vocabulary."); };
+  $("#askAbout").onclick = () => { teacherContext = { unit: unit.title, summary: (L.intro + " " + L.rules.join(" ")).slice(0, 800) }; show("teacher"); };
+  const rg = $("#regen"); if (rg) rg.onclick = () => { store.del(lessonKey(code, unit.id)); openUnit(unit.id); };
+  $("#startEx").onclick = () => {
+    $("#exBox").scrollIntoView({ behavior: "smooth" });
+    const exs = L.builtin ? builtinLesson(code, unit).exercises : L.exercises;
+    runExercises($("#exBox"), exs, { code, unitTitle: unit.title, kind: unit.kind }, res => finishUnit(code, unit, L, res));
+  };
+}
+function finishUnit(code, unit, L, res) {
+  const p = prog(code), prev = p.units[unit.id] || {};
+  const pass = res.score >= 80;
+  p.units[unit.id] = { ...prev, best: Math.max(prev.best ?? 0, res.score), attempts: (prev.attempts || 0) + 1, done: prev.done || pass, last: Date.now() };
+  saveProg(code);
+  if (pass && L.vocab.length && !L.builtin) addWords(code, L.vocab, unit.title);
+  const nx = nextUnit(code);
+  $("#exBox").innerHTML = `<div class="card" style="text-align:center;display:grid;gap:10px;justify-items:center">
+    <div class="eyebrow">${pass ? "Mastered" : "Not yet"}</div><div style="font-size:44px;font-weight:600">${res.score}%</div>
+    <p style="max-width:520px;margin:0">${pass ? (res.score === 100 ? "Flawless. I'm almost suspicious." : "Lesson mastered. The next one is unlocked.") : "You need 80% to move on. Look at the explanations, then try again; you're closer than you think."}</p>
+    <div class="row">${pass && nx ? `<button class="btn primary" data-unit="${nx.id}">Next: ${esc(nx.title)}</button>` : `<button class="btn primary" id="again">Try again</button>`}<button class="btn" data-go="course">Back to course</button>${res.wrong.length ? `<button class="btn" id="explainWrong">Explain my mistakes</button>` : ""}</div></div>`;
+  wireCommon($("#exBox"));
+  const ag = $("#again"); if (ag) ag.onclick = () => $("#startEx").click();
+  const ew = $("#explainWrong"); if (ew) ew.onclick = () => { teacherContext = { unit: unit.title, summary: "The student just got these wrong:\n" + res.wrong.map(w => `- ${w.prompt} | their answer: ${w.given} | correct: ${w.correct}`).join("\n") }; pendingTeacherAsk = "Can you explain the mistakes I just made, simply?"; show("teacher"); };
+}
+async function levelTest(n) {
+  const code = profile.active, lv = curriculum(code)[n];
+  if (!(await needBrain())) return;
+  show("lesson");
+  const box = $("#v-lesson");
+  box.innerHTML = `<div class="view-title"><div><div class="eyebrow">Level test</div><h1>Level ${n} · ${lv.name} (${lv.cefr})</h1><p>Score 80% to mark the whole level as mastered.</p></div><button class="btn ghost" data-go="course">← Course</button></div><div id="exBox"><div class="card"><p class="state hot">Preparing your test…</p></div></div>`;
+  wireCommon(box);
+  try {
+    const t = LANGS[code];
+    const j = await askJSON(persona(), `Write a level test for ${t.name}, level ${lv.name} (${lv.cefr}), covering these topics: ${lv.units.map(u => u.title).join("; ")}.
+Make 14 exercises mixing mcq, fill, translate and order (and 2 listen). Difficulty must match the level exactly. Every mcq answer is the 0-based index of the correct option. Explanations in ${profile.explainLang === "native" ? LANGS[profile.native].name : t.name}.
+JSON: {"exercises": [ ...same exercise objects as: ${LESSON_SCHEMA.match(/"exercises": \[([\s\S]*)\]/)[1]} ]}`);
+    const exs = sanitizeExercises(j.exercises);
+    if (exs.length < 6) throw new Error("The test came back incomplete. Try again.");
+    runExercises($("#exBox"), exs, { code, unitTitle: "Level " + n + " test", kind: "test" }, res => {
+      const p = prog(code);
+      if (res.score >= 80) for (const u of lv.units) p.units[u.id] = { ...(p.units[u.id] || {}), done: true, tested: true, best: Math.max(p.units[u.id]?.best ?? 0, res.score) };
+      saveProg(code);
+      $("#exBox").innerHTML = `<div class="card" style="text-align:center"><div class="eyebrow">${res.score >= 80 ? "Level unlocked" : "Not this time"}</div><div style="font-size:44px;font-weight:600">${res.score}%</div><p>${res.score >= 80 ? "You tested out of this level. Fine, you win this round." : "No shame in it. The lessons in this level will get you there."}</p><button class="btn primary" data-go="course">Back to course</button></div>`;
+      wireCommon($("#exBox"));
+    });
+  } catch (e) { $("#exBox").innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
+}
+async function mistakeDrill() {
+  const code = profile.active, p = prog(code);
+  if (!(await needBrain())) return;
+  show("lesson");
+  const box = $("#v-lesson");
+  box.innerHTML = `<div class="view-title"><div><div class="eyebrow">Revision</div><h1>Practise my mistakes</h1></div><button class="btn ghost" data-go="dashboard">← Dashboard</button></div><div id="exBox"><div class="card"><p class="state hot">Building exercises from your mistakes…</p></div></div>`;
+  wireCommon(box);
+  try {
+    const j = await askJSON(persona(), `The student made these mistakes recently in ${LANGS[code].name}:\n${p.mistakes.slice(0, 15).map(m => `- [${m.unit}] ${m.prompt} | answered: ${m.given} | correct: ${m.correct}`).join("\n")}\nCreate 10 NEW exercises (not copies) that target the same weaknesses. JSON: {"exercises":[...]} using types mcq (answer = 0-based index), fill, translate, order, listen, each with an explanation.`);
+    const exs = sanitizeExercises(j.exercises);
+    runExercises($("#exBox"), exs, { code, unitTitle: "Mistake revision", kind: "revision" }, res => { $("#exBox").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:40px;font-weight:600">${res.score}%</div><p>${res.score >= 80 ? "Look at that. Your mistakes are becoming strengths." : "These need more work. We'll come back to them."}</p><button class="btn primary" data-go="dashboard">Done</button></div>`; wireCommon($("#exBox")); });
+  } catch (e) { $("#exBox").innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
+}
+
+/* ============================================================
+   12. EXERCISE ENGINE (answers stay hidden until you submit)
+   ============================================================ */
+function skillOf(ex, kind) { return ex.type === "listen" ? "listening" : ex.type === "speak" ? "speaking" : ex.type === "translate" ? "writing" : kind === "vocab" || kind === "numbers" || kind === "script" ? "vocab" : kind === "reading" ? "reading" : "grammar"; }
+function runExercises(box, exercises, ctx, onDone) {
+  const code = ctx.code, tc = textClass(code);
+  const results = []; let i = 0;
+  const steps = () => `<div class="progress-steps">${exercises.map((_, k) => `<i class="${k < i ? (results[k]?.ok ? "ok" : "no") : k === i ? "cur" : ""}"></i>`).join("")}</div>`;
+  function next() {
+    if (i >= exercises.length) {
+      const counted = results.filter(r => !r.skipped);
+      const score = counted.length ? Math.round(100 * counted.filter(r => r.ok).length / counted.length) : 0;
+      addXP(counted.filter(r => r.ok).length * 10 + 5, code);
+      return onDone({ score, results, wrong: results.filter(r => !r.ok && !r.skipped) });
+    }
+    const ex = exercises[i];
+    let inner = "";
+    if (ex.type === "mcq") inner = `<div class="prompt ${guessLang(ex.prompt, null) ? textClass(guessLang(ex.prompt, null)) : ""}">${esc(ex.prompt)}</div><div class="opts">${ex.options.map((o, k) => `<button class="opt ${tc}" data-k="${k}">${esc(o)}</button>`).join("")}</div>`;
+    else if (ex.type === "fill") inner = `<div class="prompt ${tc}">${esc(ex.prompt)}</div><input class="box ${tc}" id="ans" autocomplete="off" placeholder="Type the missing word">`;
+    else if (ex.type === "translate") inner = `<div class="note">Translate</div><div class="prompt ${guessLang(ex.prompt, null) ? textClass(guessLang(ex.prompt, null)) : ""}">${esc(ex.prompt)}</div><textarea class="box ${tc}" id="ans" style="min-height:80px" placeholder="Your translation"></textarea>`;
+    else if (ex.type === "order") inner = `<div class="prompt">${esc(ex.prompt)}</div><div class="tiles" id="built" aria-label="Your sentence"></div><div class="tiles" id="pool" style="border-style:solid">${ex.words.map((w, k) => `<button class="tile ${tc}" data-w="${k}">${esc(w)}</button>`).join("")}</div>`;
+    else if (ex.type === "listen") inner = `<div class="prompt">Listen and write what you hear</div><div class="row"><button class="btn" id="play1">${SPK} Play</button><button class="btn ghost" id="play2">Slower</button></div><input class="box ${tc}" id="ans" autocomplete="off" placeholder="Type what you heard">`;
+    else if (ex.type === "speak") inner = `<div class="prompt">Say this out loud</div><div class="row"><span class="${tc}" style="font-size:22px">${esc(ex.text)}</span>${sayBtn(ex.text, code)}</div><div class="row"><button class="btn primary" id="rec">${MIC} Record</button><button class="btn ghost" id="skipSpeak">Can't speak now</button></div><div id="heard" class="note"></div>`;
+    box.innerHTML = `<div class="card exq">${steps()}<div class="exhead"><span class="eyebrow">${esc(ctx.unitTitle)} · ${i + 1}/${exercises.length}</span><span class="pill">${ex.type}</span></div>${inner}<div id="fb"></div><div class="row"><button class="btn primary" id="check">Check</button></div></div>`;
+    const fb = $("#fb", box), check = $("#check", box);
+    let chosen = null, built = [], spoken = null;
+    if (ex.type === "mcq") $$(".opt", box).forEach(b => b.onclick = () => { $$(".opt", box).forEach(x => x.classList.remove("sel")); b.classList.add("sel"); chosen = +b.dataset.k; });
+    if (ex.type === "order") {
+      const draw = () => { $("#built", box).innerHTML = built.map((k, j) => `<button class="tile ${tc}" data-b="${j}">${esc(ex.words[k])}</button>`).join(""); $$("#pool .tile", box).forEach(t => t.hidden = built.includes(+t.dataset.w)); $$("#built .tile", box).forEach(t => t.onclick = () => { built.splice(+t.dataset.b, 1); draw(); }); };
+      $$("#pool .tile", box).forEach(t => t.onclick = () => { built.push(+t.dataset.w); draw(); });
+    }
+    if (ex.type === "listen") { $("#play1", box).onclick = () => { stopVoice(); say(ex.text, code); }; $("#play2", box).onclick = () => { stopVoice(); say(ex.text, code, { rate: .7 }); }; setTimeout(() => say(ex.text, code), 300); }
+    if (ex.type === "speak") {
+      $("#rec", box).onclick = async () => {
+        stopVoice(); $("#heard", box).textContent = "Listening…";
+        try { const r = await listenOnce(code, { onInterim: t => $("#heard", box).textContent = "“" + t + "”" }); spoken = r; $("#heard", box).textContent = r.text ? "I heard: “" + r.text + "”" : "I didn't catch anything. Try again, a bit closer to the mic."; }
+        catch (e) { $("#heard", box).innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+      };
+      $("#skipSpeak", box).onclick = () => { results[i] = { skipped: true, ok: false }; i++; next(); };
+    }
+    const enter = e => { if (e.key === "Enter" && !e.shiftKey && ex.type !== "translate") { e.preventDefault(); check.click(); } };
+    $("#ans", box)?.addEventListener("keydown", enter); $("#ans", box)?.focus();
+    check.onclick = async () => {
+      if (check.dataset.done) { i++; return next(); }
+      let ok = false, given = "", correct = "";
+      if (ex.type === "mcq") { if (chosen == null) return toast("Pick an answer first."); ok = chosen === ex.answer; given = ex.options[chosen]; correct = ex.options[ex.answer]; $$(".opt", box).forEach((b, k) => { b.disabled = true; if (k === ex.answer) b.classList.add("right"); else if (k === chosen) b.classList.add("wrong"); }); }
+      else if (ex.type === "fill" || ex.type === "translate" || ex.type === "listen") {
+        given = $("#ans", box).value.trim(); if (!given) return toast("Write an answer first.");
+        correct = ex.type === "listen" ? ex.text : ex.answer;
+        const targets = [correct, ...(ex.alternatives || [])];
+        ok = targets.some(t => normalize(t) === normalize(given) || stripAccents(normalize(t)) === stripAccents(normalize(given)));
+        if (!ok && ex.type === "listen") ok = targets.some(t => similarity(t, given) >= .85);
+        if (!ok && ex.type === "translate" && brain) {
+          check.disabled = true; fb.innerHTML = `<p class="note">Checking whether your version is also correct…</p>`;
+          try { const j = await askJSON(persona(), `Exercise: translate "${ex.prompt}". Reference answer: "${ex.answer}". Student wrote: "${given}". Is the student's translation correct and natural (meaning and grammar), even if worded differently? JSON: {"correct": true|false, "feedback": "one or two sentences"}`); ok = !!j.correct; if (j.feedback) ex._fb = String(j.feedback); } catch {}
+          check.disabled = false;
+        }
+      } else if (ex.type === "order") { given = built.map(k => ex.words[k]).join(" "); correct = ex.answer; if (!built.length) return toast("Tap the words to build the sentence."); ok = normalize(given) === normalize(correct); }
+      else if (ex.type === "speak") { if (!spoken?.text) return toast("Record yourself first, or skip."); given = spoken.text; correct = ex.text; const sc = Math.max(...[spoken.text, ...(spoken.alts || [])].map(a => similarity(a, ex.text))); ok = sc >= .7; ex._fb = `Match: ${Math.round(sc * 100)}%. ${wordDiff(ex.text, spoken.text, code)}`; }
+      results[i] = { ok, given, correct, prompt: ex.prompt || ex.text, type: ex.type };
+      addSkill(skillOf(ex, ctx.kind), ok, code);
+      if (!ok) logMistake({ unit: ctx.unitTitle, prompt: ex.prompt || ex.text, given, correct }, code);
+      fb.innerHTML = `<div class="feedback ${ok ? "ok" : "no"}"><b>${ok ? pickPraise() : "Not quite."}</b>${!ok && ex.type !== "mcq" ? `<br>Correct answer: <b class="${tc}">${esc(correct)}</b> ${sayBtn(correct, code)}` : ""}${ex._fb ? `<br>${ex.type === "speak" ? ex._fb : esc(ex._fb)}` : ""}${ex.explanation ? `<br><span class="note">${esc(ex.explanation)}</span>` : ""}${ex.type === "speak" ? `<br><span class="note">Speech matching is approximate: it checks what your browser understood, not your accent in detail.</span>` : ""}</div>`;
+      check.textContent = i + 1 < exercises.length ? "Next" : "See result"; check.dataset.done = "1";
+    };
+  }
+  next();
+}
+const PRAISE = ["Correct.", "Nailed it.", "Yes! The grammar police are not arresting you today.", "Exactly right.", "Correct. Don't let it go to your head.", "Spot on."];
+const pickPraise = () => PRAISE[Math.floor(Math.random() * (profile.personality === "sarcastic" ? PRAISE.length : 4))];
+function wordDiff(target, heard, code) {
+  const cjk = code === "zh" || code === "ja";
+  const T = cjk ? [...normalize(target).replace(/\s/g, "")] : normalize(target).split(" ");
+  const H = cjk ? [...normalize(heard).replace(/\s/g, "")] : normalize(heard).split(" ");
+  return T.map(w => `<span class="diffw ${H.some(h => h === w || similarity(h, w) >= .8) ? "hit" : "miss"} ${textClass(code)}">${esc(w)}</span>`).join(cjk ? "" : " ");
+}
+
+/* ============================================================
+   13. VOCABULARY + SPACED REPETITION (SM-2)
+   ============================================================ */
+function addWords(code, words, list) {
+  const p = prog(code); let n = 0;
+  for (const w of words) { if (!w.word || p.vocab.some(v => normalize(v.word) === normalize(w.word))) continue; p.vocab.push({ id: Math.random().toString(36).slice(2), word: w.word, rom: w.romanization || "", tr: w.translation || "", ex: w.example || "", list: list || "My words", ease: 2.5, interval: 0, reps: 0, due: Date.now() }); n++; }
+  saveProg(code); return n;
+}
+function grade(v, q) { // q: 0 again, 3 hard, 4 good, 5 easy
+  if (q < 3) { v.reps = 0; v.interval = 0; v.due = Date.now() + 60 * 1000; v.lapses = (v.lapses || 0) + 1; }
+  else { v.reps++; v.interval = v.reps === 1 ? 1 : v.reps === 2 ? 3 : Math.round(v.interval * v.ease * (q === 3 ? .8 : q === 5 ? 1.3 : 1)); v.ease = Math.max(1.3, v.ease + (.1 - (5 - q) * (.08 + (5 - q) * .02))); v.due = Date.now() + v.interval * 86400000; }
+}
+let vocabFilter = "";
+function renderVocab() {
+  const code = profile.active, p = prog(code), due = dueVocab(code), tc = textClass(code);
+  const lists = [...new Set(p.vocab.map(v => v.list))];
+  const shown = p.vocab.filter(v => !vocabFilter || v.list === vocabFilter || normalize(v.word + " " + v.tr).includes(normalize(vocabFilter)));
+  $("#v-vocab").innerHTML = `
+    <div class="view-title"><div><div class="eyebrow">Vocabulary</div><h1>Your ${esc(LANGS[code].name)} words</h1><p>${p.vocab.length} words · ${p.vocab.filter(v => v.interval >= 21).length} mastered · reviews are spaced so you see a word just before you'd forget it.</p></div>
+      <button class="btn primary" id="startReview" ${due.length ? "" : "disabled"}>Review ${due.length} due word${due.length === 1 ? "" : "s"}</button></div>
+    <div id="reviewBox"></div>
+    <div class="grid g2"><div class="card"><h3 style="margin:0 0 10px;font-size:15px">Add a word</h3>
+      <form id="addWord" class="grid" style="gap:8px"><input class="box ${tc}" id="nwWord" placeholder="Word or phrase in ${esc(LANGS[code].name)}" required>
+      <div class="row"><input class="box" id="nwTr" placeholder="Meaning (optional)" style="flex:1;min-width:0"><input class="box" id="nwList" placeholder="List name" style="width:150px" list="lists"><datalist id="lists">${lists.map(l => `<option value="${esc(l)}">`).join("")}</datalist></div>
+      <div class="row"><button class="btn primary" type="submit">Add</button><span class="note">Leave the meaning empty and the AI fills it in, with an example.</span></div></form></div>
+    <div class="card"><h3 style="margin:0 0 10px;font-size:15px">Find</h3><input class="box" id="vSearch" placeholder="Search or pick a list" value="${esc(vocabFilter)}" list="lists">
+      <div class="row" style="margin-top:10px">${lists.map(l => `<button class="pill ${l === vocabFilter ? "blue" : ""}" data-list="${esc(l)}" style="background:transparent">${esc(l)}</button>`).join("")}</div></div></div>
+    <div class="card" style="margin-top:14px">${shown.length ? `<div class="vlist">${shown.map(v => `<div class="vrow">${sayBtn(v.word, code)}<span><span class="w ${tc}">${esc(v.word)}</span>${v.rom ? ` <span class="note mono">${esc(v.rom)}</span>` : ""}<br><span class="note ${tc}">${esc(v.ex)}</span></span><span class="tr">${esc(v.tr)}</span><span class="lst pill">${v.interval >= 21 ? "mastered" : v.reps ? "learning" : "new"}</span><button class="btn small ghost" data-del="${v.id}" aria-label="Delete ${esc(v.word)}">×</button></div>`).join("")}</div>` : `<div class="empty">No words yet. Finish a lesson, or add your own above.</div>`}</div>`;
+  $("#startReview").onclick = startReview;
+  $("#vSearch").oninput = e => { vocabFilter = e.target.value; clearTimeout(renderVocab.t); renderVocab.t = setTimeout(() => { renderVocab(); $("#vSearch").focus(); $("#vSearch").setSelectionRange(99, 99); }, 300); };
+  $$("[data-list]").forEach(b => b.onclick = () => { vocabFilter = vocabFilter === b.dataset.list ? "" : b.dataset.list; renderVocab(); });
+  $$("[data-del]").forEach(b => b.onclick = () => { p.vocab = p.vocab.filter(v => v.id !== b.dataset.del); saveProg(code); renderVocab(); });
+  $("#addWord").onsubmit = async e => {
+    e.preventDefault();
+    const word = $("#nwWord").value.trim(); if (!word) return;
+    let w = { word, translation: $("#nwTr").value.trim() };
+    if (!w.translation && brain) { try { const j = await askJSON(persona(), `Give the meaning of the ${LANGS[code].name} word or phrase "${word}" in ${LANGS[profile.native].name}, a romanization if the script is not Latin (else ""), and one short natural example sentence in ${LANGS[code].name}. JSON: {"translation":"","romanization":"","example":""}`); w = { word, translation: j.translation, romanization: j.romanization, example: j.example }; } catch {} }
+    addWords(code, [w], $("#nwList").value.trim() || "My words") ? toast("Added.") : toast("That word is already in your list.");
+    renderVocab();
+  };
+}
+function startReview() {
+  const code = profile.active, p = prog(code), queue = shuffle(dueVocab(code)).slice(0, 25), tc = textClass(code);
+  let k = 0;
+  const box = $("#reviewBox");
+  const card = () => {
+    if (k >= queue.length) { box.innerHTML = `<div class="card flash" style="margin-bottom:14px"><div class="eyebrow">Review done</div><p>${queue.length} words reviewed. Your future self thanks you.</p></div>`; addXP(queue.length * 2, code); saveProg(code); return; }
+    const v = queue[k];
+    box.innerHTML = `<div class="card flash" style="margin-bottom:14px"><span class="note">${k + 1} / ${queue.length}</span><div class="w ${tc}">${esc(v.word)}</div>${sayBtn(v.word, code)}<button class="btn" id="reveal">Show meaning</button><div id="back" hidden><div style="font-size:20px">${esc(v.tr)}</div>${v.rom ? `<div class="r">${esc(v.rom)}</div>` : ""}<p class="note ${tc}">${esc(v.ex)}</p><div class="row" style="justify-content:center"><button class="btn" data-q="0">Again</button><button class="btn" data-q="3">Hard</button><button class="btn primary" data-q="4">Good</button><button class="btn" data-q="5">Easy</button></div></div></div>`;
+    say(v.word, code);
+    $("#reveal").onclick = () => { $("#back").hidden = false; $("#reveal").hidden = true; };
+    $$("[data-q]", box).forEach(b => b.onclick = () => { const q = +b.dataset.q; grade(v, q); addSkill("vocab", q >= 3, code); if (q < 3) queue.push(v); k++; saveProg(code); card(); });
+  };
+  card(); box.scrollIntoView({ behavior: "smooth" });
+}
+
+/* ============================================================
+   14. GRAMMAR SCHOOL
+   ============================================================ */
+function renderGrammar() {
+  const code = profile.active, p = prog(code);
+  const g = curriculum(code).map(lv => ({ lv, units: lv.units.filter(u => u.kind === "grammar") })).filter(x => x.units.length);
+  $("#v-grammar").innerHTML = `<div class="view-title"><div><div class="eyebrow">Grammar school</div><h1>${esc(LANGS[code].name)} grammar, basic to advanced</h1><p>Every topic: definition, simple explanation, rules, examples, common mistakes, real-life use, exercises with answers. Open any topic as a reference; mastery still comes from the exercises.</p></div></div>
+    ${g.map(({ lv, units }) => `<div class="card" style="margin-bottom:12px"><div class="between"><h3 style="margin:0;font-size:15px">Level ${lv.n} · ${lv.name} <span class="dim">${lv.cefr}</span></h3></div><div class="units" style="padding:12px 0 0">${units.map(u => `<button class="unit ${p.units[u.id]?.done ? "done" : ""}" data-gunit="${u.id}"><span class="ic">${p.units[u.id]?.done ? "✓" : "§"}</span><span>${esc(u.title)}<br><small>${p.units[u.id]?.best != null ? "best " + p.units[u.id].best + "%" : "not practised"}</small></span><span></span></button>`).join("")}</div></div>`).join("")}
+    <div class="card"><h3 style="margin:0 0 8px;font-size:15px">Ask about any grammar point</h3><div class="row"><input class="box" id="gq" placeholder="e.g. When do I use the subjunctive?" style="flex:1;min-width:0"><button class="btn primary" id="gAsk">Ask the teacher</button></div></div>`;
+  $$("[data-gunit]").forEach(b => b.onclick = () => { const was = currentView; currentView = "grammar"; openUnit(b.dataset.gunit); });
+  $("#gAsk").onclick = () => { pendingTeacherAsk = $("#gq").value.trim() || null; show("teacher"); };
+}
+
+/* ============================================================
+   15. AI TEACHER (text + voice)
+   ============================================================ */
+let teacherContext = null, pendingTeacherAsk = null, teacherBusy = false, teacherCtl = null, teacherVoice = true;
+function renderTeacher() {
+  const code = profile.active, p = prog(code);
+  $("#v-teacher").innerHTML = `<div class="view-title"><div><div class="eyebrow">Your teacher</div><h1>Ask anything about ${esc(LANGS[code].name)}</h1><p>${teacherContext ? "Talking about: " + esc(teacherContext.unit) : "Grammar, words, pronunciation, culture, homework. It remembers this conversation."}</p></div>
+    <div class="row"><button class="btn small ghost" id="tClear">New conversation</button></div></div>
+    <div class="card chatwrap"><div class="chatlog" id="tLog" aria-live="polite"></div>
+    <div><div class="quick" id="tQuick">${["Explain it like I'm a complete beginner", "Give me five examples", "Can you explain that rule again?", "What's the difference between these two words?", "Quiz me on what we just did", "Can we practise speaking?", "Correct my sentence:"].map(q => `<button type="button">${esc(q)}</button>`).join("")}</div>
+    <form class="composer" id="tForm"><button class="ibtn" type="button" id="tMic" title="Speak your question" aria-label="Speak">${MIC}</button><textarea id="tIn" rows="1" placeholder="Ask your teacher…" aria-label="Message"></textarea><button class="ibtn" type="button" id="tSpk" aria-pressed="${teacherVoice}" title="Read answers aloud" aria-label="Read answers aloud">${SPK}</button><button class="ibtn go" type="submit" aria-label="Send">${SEND}</button></form></div></div>`;
+  const log = $("#tLog");
+  if (!p.chat.length) bubble(log, "ai", profile.personality === "sarcastic" ? `So. ${LANGS[code].name}. Bold choice. Ask me anything, from "how do I count to ten" to "why is this sentence a disaster". I've heard worse.` : `Hi! Ask me anything about ${LANGS[code].name}: grammar, words, pronunciation or culture.`);
+  for (const m of p.chat) bubble(log, m.role === "user" ? "you" : "ai", m.content);
+  $("#tQuick").onclick = e => { const b = e.target.closest("button"); if (!b) return; const t = b.textContent; if (t.endsWith(":")) { $("#tIn").value = t + " "; $("#tIn").focus(); } else teacherAsk(t); };
+  $("#tForm").onsubmit = e => { e.preventDefault(); if (teacherBusy) { teacherCtl?.abort(); return; } teacherAsk($("#tIn").value); };
+  $("#tIn").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tForm").requestSubmit(); } };
+  $("#tSpk").onclick = () => { teacherVoice = !teacherVoice; $("#tSpk").setAttribute("aria-pressed", teacherVoice); if (!teacherVoice) stopVoice(); };
+  $("#tClear").onclick = () => { p.chat = []; teacherContext = null; saveProg(code); renderTeacher(); };
+  $("#tMic").onclick = async () => {
+    stopVoice(); $("#tMic").setAttribute("aria-pressed", "true");
+    // listen in the native language first; most questions are asked in it
+    try { const r = await listenOnce(profile.explainLang === "native" ? profile.native : code, { onInterim: t => $("#tIn").value = t }); if (r.text) teacherAsk(r.text); }
+    catch (e) { toast(e.message); } finally { $("#tMic")?.setAttribute("aria-pressed", "false"); }
+  };
+  if (pendingTeacherAsk) { const q = pendingTeacherAsk; pendingTeacherAsk = null; teacherAsk(q); }
+}
+function bubble(log, role, text, who = "TEACHER") { const d = document.createElement("div"); d.className = "msg " + role; d.dataset.who = who; d.textContent = text; log.append(d); log.scrollTop = log.scrollHeight; return d; }
+async function teacherAsk(text) {
+  text = (text || "").trim(); if (!text || teacherBusy) return;
+  if (!(await needBrain())) return;
+  const code = profile.active, p = prog(code), log = $("#tLog");
+  $("#tIn").value = ""; bubble(log, "you", text);
+  p.chat.push({ role: "user", content: text }); p.chat = p.chat.slice(-40); saveProg(code);
+  const out = bubble(log, "ai", "…"); teacherBusy = true; stopVoice();
+  teacherCtl = new AbortController();
+  const ctx = teacherContext ? `Current lesson: "${teacherContext.unit}". Context: ${teacherContext.summary}` : "";
+  try {
+    const reply = await chat({ system: persona(ctx + "\nKeep answers focused: short paragraphs, plain text, no markdown headings. End with a quick check question or a tiny exercise when it helps learning."), turns: p.chat.slice(-16), signal: teacherCtl.signal, onText: t => { out.textContent = t.replace(/<think>[\s\S]*?(<\/think>|$)/g, ""); log.scrollTop = log.scrollHeight; } });
+    const clean = reply.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    out.textContent = clean; p.chat.push({ role: "assistant", content: clean }); saveProg(code); addXP(2, code);
+    if (teacherVoice) sayMixed(clean);
+  } catch (e) { out.classList.add("err"); out.textContent = e.name === "AbortError" ? "(stopped)" : e.message; p.chat.pop(); saveProg(code); }
+  finally { teacherBusy = false; }
+}
+
+/* ============================================================
+   16. TALK: continuous voice conversation with role-play
+   ============================================================ */
+const talk = { active: false, muted: false, rec: null, buffer: "", silenceT: null, busy: false, ctl: null, scenario: "free", difficulty: "matched", showText: true, turns: [] };
+function renderTalk() {
+  const code = profile.active, v = voiceFor(code);
+  $("#v-talk").innerHTML = `<div class="view-title"><div><div class="eyebrow">Talk</div><h1>Speak ${esc(LANGS[code].name)}, naturally</h1><p>Start a session and just talk; no button after every sentence. Interrupt whenever you like. Headphones help a lot.</p></div></div>
+    <div class="talk">
+      <div class="card stage"><div class="orbwrap"><canvas id="orb" aria-hidden="true"></canvas></div><div class="state" id="talkState">Ready</div>
+        <div class="live" id="liveCap" aria-live="polite">${Rec ? "" : "This browser can't listen. Use Chrome or Edge for voice conversations."}</div>
+        <button class="bigbtn" id="talkBtn" ${Rec ? "" : "disabled"}>Start conversation</button>
+        <div class="row" style="justify-content:center">
+          <button class="btn small" id="muteBtn" aria-pressed="false" disabled>Mute mic</button>
+          <label class="row note" style="gap:6px">Volume <input type="range" id="tVol" min="0" max="1" step=".05" value="${profile.volume}"></label>
+          <button class="btn small" id="tVoiceBtn">Voice: ${esc(v ? v.name.slice(0, 22) : "default")}</button>
+          <button class="btn small" id="tTextBtn" aria-pressed="${talk.showText}">${talk.showText ? "Hide" : "Show"} transcript</button>
+        </div></div>
+      <div class="grid" style="align-content:start">
+        <div class="card"><div class="between"><h3 style="margin:0;font-size:15px">Situation</h3>
+          <select class="sel" id="tDiff"><option value="easy">Easy</option><option value="matched">My level</option><option value="hard">Challenging</option></select></div>
+          <div class="scenarios" style="margin-top:10px">${SCENARIOS.map(([k, n, d]) => `<button class="scn" data-scn="${k}" aria-pressed="${talk.scenario === k}">${esc(n)}<span>${esc(d)}</span></button>`).join("")}</div></div>
+        <div class="card" id="tTranscriptCard" ${talk.showText ? "" : "hidden"}><h3 style="margin:0 0 8px;font-size:15px">Live transcript</h3><div class="chatlog" id="talkLog" style="max-height:320px"></div></div>
+      </div></div>`;
+  initOrb($("#orb")); orbRest();
+  $("#tDiff").value = talk.difficulty; $("#tDiff").onchange = e => talk.difficulty = e.target.value;
+  $$("[data-scn]").forEach(b => b.onclick = () => { talk.scenario = b.dataset.scn; $$("[data-scn]").forEach(x => x.setAttribute("aria-pressed", x === b)); if (talk.active) { endTalk(); startTalk(); } });
+  $("#talkBtn").onclick = () => talk.active ? endTalk() : startTalk();
+  $("#muteBtn").onclick = () => { talk.muted = !talk.muted; $("#muteBtn").setAttribute("aria-pressed", talk.muted); $("#muteBtn").textContent = talk.muted ? "Unmute mic" : "Mute mic"; talk.muted ? stopRec() : startRec(); orbRest(); };
+  $("#tVol").oninput = e => { profile.volume = +e.target.value; saveProfile(); };
+  $("#tVoiceBtn").onclick = () => show("settings");
+  $("#tTextBtn").onclick = () => { talk.showText = !talk.showText; renderTalk(); };
+  const log = $("#talkLog"); for (const m of talk.turns) talkLine(m.role, m.content, m.fix, log);
+}
+function talkSystem() {
+  const t = LANGS[profile.active], s = SCENARIOS.find(x => x[0] === talk.scenario);
+  const role = talk.scenario === "free" ? `Have a natural, flowing conversation in ${t.name}: be curious, react, ask follow-up questions, share opinions, joke when it fits.` : `ROLE-PLAY: "${s[1]}" (${s[2]}). Play the other person (e.g. waiter, agent, receptionist, doctor, interviewer) realistically in ${t.name}. Start the scene yourself. Stay in character.`;
+  const diff = { easy: "Speak slowly with very simple words and short sentences.", matched: "Match the student's level.", hard: "Speak naturally at near-native speed with idioms appropriate to the scene." }[talk.difficulty];
+  return persona(`VOICE CONVERSATION. Your replies are spoken aloud: 1-3 short sentences, plain spoken ${t.name}, no lists, no markdown, no emojis, no stage directions. ${role} ${diff}
+Let small mistakes go so the conversation flows; when the student makes a real mistake, keep talking naturally and add ONE extra line at the very end exactly like: [[fix: what they said → better version (short reason in ${LANGS[profile.native].name})]]. Only one fix per turn, only when useful.`);
+}
+function talkLine(role, text, fix, log = $("#talkLog")) {
+  if (!log) return;
+  const d = document.createElement("div"); d.className = "msg " + (role === "user" ? "you" : "ai"); d.dataset.who = "NXXR"; d.textContent = text;
+  if (fix) { const f = document.createElement("span"); f.className = "fix"; f.textContent = "✎ " + fix; d.append(f); }
+  log.append(d); log.scrollTop = log.scrollHeight;
+}
+async function startTalk() {
+  if (!(await needBrain())) return;
+  unlockVoice(); talk.active = true; talk.muted = false; talk.turns = []; $("#talkLog") && ($("#talkLog").innerHTML = "");
+  $("#talkBtn").textContent = "End conversation"; $("#talkBtn").classList.add("end"); $("#muteBtn").disabled = false;
+  startRec();
+  // the AI opens the conversation
+  talkTurn(null);
+}
+function endTalk() {
+  talk.active = false; stopRec(); stopVoice(); talk.ctl?.abort(); clearTimeout(talk.silenceT);
+  const b = $("#talkBtn"); if (b) { b.textContent = "Start conversation"; b.classList.remove("end"); }
+  const m = $("#muteBtn"); if (m) m.disabled = true;
+  orbState("idle");
+  if (talk.turns.filter(t => t.role === "user").length) { addXP(Math.min(30, talk.turns.length * 2)); addSkill("speaking", true); }
+}
+function startRec() {
+  if (!Rec || !talk.active || talk.muted) return;
+  try { talk.rec?.abort(); } catch {}
+  const r = new Rec(); talk.rec = r;
+  r.lang = LANGS[profile.active].stt; r.continuous = true; r.interimResults = true;
+  r.onresult = e => {
+    let interim = "", fin = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) { const tx = e.results[i][0].transcript; if (e.results[i].isFinal) fin += tx + " "; else interim += tx; }
+    const heard = (talk.buffer + fin + interim).trim();
+    // barge-in: the student speaks over the AI (ignore the AI's own voice leaking into the mic)
+    if (speakingNow && interim.trim().length > 6 && similarity(interim, speakingNow.slice(0, interim.length + 10)) < .5) { stopVoice(); talk.ctl?.abort(); orbState("listening"); }
+    if (fin) talk.buffer += fin;
+    if (heard && !(speakingNow && similarity(heard, speakingNow) > .5)) { $("#liveCap").textContent = heard; orbState("listening"); }
+    clearTimeout(talk.silenceT);
+    talk.silenceT = setTimeout(() => { const t = talk.buffer.trim(); if (t && !talk.busy) { talk.buffer = ""; talkTurn(t); } }, 1100);
+  };
+  r.onerror = e => { if (e.error === "not-allowed") { toast("Microphone blocked. Allow it in the address bar."); endTalk(); } };
+  r.onend = () => { if (talk.active && !talk.muted && talk.rec === r) setTimeout(startRec, 200); };
+  try { r.start(); } catch {}
+}
+function stopRec() { const r = talk.rec; talk.rec = null; try { r?.abort(); } catch {} }
+async function talkTurn(userText) {
+  if (!talk.active) return;
+  if (userText) { talk.turns.push({ role: "user", content: userText }); talkLine("user", userText); $("#liveCap").textContent = ""; }
+  talk.busy = true; orbState("thinking"); stopVoice();
+  const turns = talk.turns.length ? talk.turns.slice(-14).map(t => ({ role: t.role, content: t.content })) : [{ role: "user", content: "(The student just started the session. Open the conversation now, in character.)" }];
+  if (turns[0].role !== "user") turns.unshift({ role: "user", content: "(Session start.)" });
+  talk.ctl = new AbortController();
+  let spoken = 0, full = "";
+  const speakNew = (final) => {
+    const vis = full.replace(/\[\[[\s\S]*?(\]\]|$)/g, "").replace(/<think>[\s\S]*?(<\/think>|$)/g, ""), rest = vis.slice(spoken);
+    const m = final ? (rest.trim() ? [rest] : null) : rest.match(/^[\s\S]*?[.!?…。？！](?=\s|$)/);
+    if (m && (final || m[0].trim().length > 4)) { say(m[0], profile.active); spoken += m[0].length; if (!final) speakNew(false); }
+  };
+  try {
+    full = await chat({ system: talkSystem(), turns, signal: talk.ctl.signal, onText: t => { full = t; speakNew(false); } });
+    speakNew(true);
+    const fix = (full.match(/\[\[fix:\s*([\s\S]*?)\]\]/i) || [])[1];
+    const clean = full.replace(/\[\[[\s\S]*?\]\]/g, "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    talk.turns.push({ role: "assistant", content: clean, fix }); talkLine("assistant", clean, fix);
+  } catch (e) { if (e.name !== "AbortError") { talkLine("assistant", "(" + e.message + ")"); } }
+  finally { talk.busy = false; if (!speakingNow) orbRest(); }
+}
+
+/* ============================================================
+   17. PRACTICE: pronunciation, writing, reading, listening
+   ============================================================ */
+let practiceTab = "pron", pronList = [], readingSet = null;
+function renderPractice() {
+  const code = profile.active;
+  $("#v-practice").innerHTML = `<div class="view-title"><div><div class="eyebrow">Practice</div><h1>Train every skill</h1></div></div>
+    <div class="subtabs" id="ptabs">${[["pron","Pronunciation"],["write","Writing"],["read","Reading"],["listen","Listening"]].map(([k, n]) => `<button data-p="${k}" aria-pressed="${practiceTab === k}">${n}</button>`).join("")}</div><div id="pBody"></div>`;
+  $("#ptabs").onclick = e => { const b = e.target.closest("[data-p]"); if (b) { practiceTab = b.dataset.p; renderPractice(); } };
+  ({ pron: renderPron, write: renderWrite, read: () => renderReading(false), listen: () => renderReading(true) })[practiceTab]();
+}
+function renderPron() {
+  const code = profile.active, tc = textClass(code);
+  $("#pBody").innerHTML = `<div class="grid g2"><div class="card"><h3 style="margin:0 0 8px;font-size:15px">Phrase to practise</h3>
+      <textarea class="box ${tc}" id="pText" style="min-height:70px" placeholder="Type a word or sentence in ${esc(LANGS[code].name)}">${esc(pronList[0]?.text || "")}</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" id="pPlay">${SPK} Hear it</button><button class="btn ghost" id="pSlow">Slowly</button><button class="btn primary" id="pRec">${MIC} Say it</button><button class="btn ghost" id="pSuggest">Suggest phrases</button></div>
+      <div id="pResult" style="margin-top:12px"></div></div>
+    <div class="card"><h3 style="margin:0 0 8px;font-size:15px">Practice list</h3><div id="pList">${pronList.length ? pronList.map((x, i) => `<div class="mistake" style="border-color:var(--blue);background:rgba(47,140,255,.06)"><div class="between"><span class="${tc}" style="font-size:17px">${esc(x.text)}</span><button class="btn small" data-pi="${i}">Practise</button></div>${x.romanization ? `<span class="note mono">${esc(x.romanization)}</span><br>` : ""}${x.ipa ? `<span class="note mono">/${esc(x.ipa)}/</span><br>` : ""}<span class="note">${esc(x.tip || "")}</span></div>`).join("") : `<div class="empty">Tap "Suggest phrases" for sounds that are hard at your level, or type your own.</div>`}</div>
+    <p class="note">Honest note: your browser turns your speech into text and we compare it with the target. That catches mispronounced words, but it is not a detailed accent analysis.</p></div></div>`;
+  $("#pPlay").onclick = () => { stopVoice(); say($("#pText").value, code); };
+  $("#pSlow").onclick = () => { stopVoice(); say($("#pText").value, code, { rate: .65 }); };
+  $$("[data-pi]").forEach(b => b.onclick = () => { $("#pText").value = pronList[+b.dataset.pi].text; $("#pResult").innerHTML = ""; });
+  $("#pRec").onclick = async () => {
+    const target = $("#pText").value.trim(); if (!target) return toast("Type or pick a phrase first.");
+    stopVoice(); $("#pResult").innerHTML = `<p class="state hot">Listening…</p>`;
+    try {
+      const r = await listenOnce(code, { onInterim: t => $("#pResult").innerHTML = `<p class="note">“${esc(t)}”</p>` });
+      if (!r.text) { $("#pResult").innerHTML = `<p class="note">I didn't hear anything. Try again closer to the microphone.</p>`; return; }
+      const sc = Math.max(...[r.text, ...r.alts].map(a => similarity(a, target)));
+      addSkill("speaking", sc >= .7, code); addXP(sc >= .7 ? 5 : 2, code);
+      $("#pResult").innerHTML = `<div class="feedback ${sc >= .7 ? "ok" : "no"}"><b>${Math.round(sc * 100)}% match</b> · I heard: “${esc(r.text)}”<div style="margin-top:6px">${wordDiff(target, r.text, code)}</div><span class="note">Red words weren't recognised; those are the ones to work on.</span></div><div class="row" style="margin-top:8px"><button class="btn small" id="pWhy">Why is this hard? Ask the teacher</button></div>`;
+      $("#pWhy").onclick = () => { teacherContext = { unit: "Pronunciation practice", summary: `Target: "${target}". The browser heard: "${r.text}".` }; pendingTeacherAsk = `How do I pronounce "${target}" correctly? Explain the difficult sounds, mouth position and give me a trick.`; show("teacher"); };
+    } catch (e) { $("#pResult").innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+  };
+  $("#pSuggest").onclick = async () => {
+    if (!(await needBrain())) return;
+    $("#pList").innerHTML = `<p class="state hot">Choosing phrases…</p>`;
+    try { const j = await askJSON(persona(), `Give 6 short ${LANGS[code].name} words or phrases that practise sounds which are hard for a ${LANGS[profile.native].name} speaker at level ${LEVELS[currentLevel()].cefr}. For each: text, romanization (if non-Latin, else ""), ipa (or ""), and a one-line tip in ${LANGS[profile.native].name}. JSON: {"items":[{"text":"","romanization":"","ipa":"","tip":""}]}`); pronList = (j.items || []).filter(x => x.text).slice(0, 8); renderPron(); }
+    catch (e) { $("#pList").innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+  };
+}
+function renderWrite() {
+  const code = profile.active, tc = textClass(code);
+  $("#pBody").innerHTML = `<div class="grid g2"><div class="card"><div class="between"><h3 style="margin:0;font-size:15px">Write</h3><select class="sel" id="wType"><option>Sentences</option><option>Paragraph</option><option>Email</option><option>Formal letter</option><option>Essay</option><option>Creative writing</option></select></div>
+      <p class="note" id="wTask">${esc(store.get("wtask." + code, "Write about your day, or click \"Give me a task\"."))}</p>
+      <textarea class="box ${tc}" id="wText" placeholder="Write in ${esc(LANGS[code].name)}…">${esc(store.get("wdraft." + code, ""))}</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn ghost" id="wTaskBtn">Give me a task</button><button class="btn primary" id="wCheck">Correct my writing</button></div></div>
+    <div class="card" id="wOut"><div class="empty">Your corrections will appear here: score, corrected text and every mistake explained.</div></div></div>`;
+  $("#wText").oninput = e => store.set("wdraft." + code, e.target.value);
+  $("#wTaskBtn").onclick = async () => { if (!(await needBrain())) return; $("#wTask").textContent = "Thinking of a task…"; try { const j = await askJSON(persona(), `Give one ${$("#wType").value.toLowerCase()} writing task for a ${LANGS[code].name} learner at ${LEVELS[currentLevel()].cefr}, written in ${LANGS[profile.native].name}, with the expected length. JSON: {"task":""}`); $("#wTask").textContent = j.task; store.set("wtask." + code, j.task); } catch (e) { $("#wTask").textContent = e.message; } };
+  $("#wCheck").onclick = async () => {
+    const text = $("#wText").value.trim(); if (text.length < 3) return toast("Write something first.");
+    if (!(await needBrain())) return;
+    $("#wOut").innerHTML = `<p class="state hot">Reading your text…</p>`;
+    try {
+      const j = await askJSON(persona(), `Evaluate this ${$("#wType").value.toLowerCase()} written by a ${LANGS[code].name} learner (level ${LEVELS[currentLevel()].cefr}). Task: ${$("#wTask").textContent}
+Text: """${text}"""
+Explain in ${LANGS[profile.native].name}. JSON: {"score": 0-100, "level": "CEFR estimate", "corrected": "full corrected text", "mistakes": [{"original": "", "fix": "", "why": ""}], "good": "what was good", "tips": ["next-step tips"]}`);
+      const sc = Math.max(0, Math.min(100, +j.score || 0)); addSkill("writing", sc >= 70, code); addXP(10, code);
+      $("#wOut").innerHTML = `<div class="between"><h3 style="margin:0;font-size:15px">Feedback</h3><span class="pill blue">${sc}/100 · ${esc(j.level || "")}</span></div>
+        <p class="note" style="margin-top:10px">Corrected</p><p class="${tc}" style="white-space:pre-wrap">${esc(j.corrected || "")}</p>
+        ${(j.mistakes || []).map(m => `<div class="mistake"><s class="dim ${tc}">${esc(m.original)}</s> → <b class="${tc}">${esc(m.fix)}</b><br><span class="note">${esc(m.why)}</span></div>`).join("") || `<p>No mistakes found. Annoyingly good.</p>`}
+        ${j.good ? `<p><b>Good:</b> ${esc(j.good)}</p>` : ""}${(j.tips || []).length ? `<ul>${j.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}`;
+      for (const m of (j.mistakes || []).slice(0, 5)) logMistake({ unit: "Writing", prompt: "Writing", given: m.original, correct: m.fix }, code);
+    } catch (e) { $("#wOut").innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+  };
+}
+function renderReading(listening) {
+  const code = profile.active, tc = textClass(code);
+  $("#pBody").innerHTML = `<div class="card"><div class="row"><select class="sel" id="rType">${(listening ? ["Short dialogue", "Longer conversation", "Announcement", "Story", "Dictation sentences"] : ["Short story", "Article", "Dialogue", "News-style text", "Educational passage"]).map(t => `<option>${t}</option>`).join("")}</select><input class="box" id="rTopic" placeholder="Topic (optional)" style="flex:1;min-width:140px"><button class="btn primary" id="rGen">${listening ? "New listening" : "New text"}</button></div></div><div id="rOut" style="margin-top:14px"></div>`;
+  $("#rGen").onclick = async () => {
+    if (!(await needBrain())) return;
+    $("#rOut").innerHTML = `<div class="card"><p class="state hot">Writing…</p></div>`;
+    const type = $("#rType").value;
+    try {
+      const j = await askJSON(persona(), `Write a ${type.toLowerCase()} in ${LANGS[code].name} for level ${LEVELS[currentLevel()].cefr}${$("#rTopic").value ? " about " + $("#rTopic").value : ""}. ${listening ? "It will be read aloud, so write natural spoken language." : ""} Then 5 comprehension questions.
+JSON: {"title":"", "text":"the full text in ${LANGS[code].name}", "glossary":[{"word":"","meaning":"in ${LANGS[profile.native].name}"}], "questions":[{"type":"mcq","prompt":"question","options":["","","",""],"answer":0,"explanation":""}]}`);
+      readingSet = { ...j, listening };
+      const qs = sanitizeExercises(j.questions);
+      $("#rOut").innerHTML = `<div class="grid g2"><div class="card"><h2 style="margin:0 0 8px;font-size:18px" class="${tc}">${esc(j.title || type)}</h2>
+        ${listening ? `<div class="row"><button class="btn primary" id="rPlay">${SPK} Play</button><button class="btn ghost" id="rSlow">Slower</button><button class="btn ghost" id="rShow">Show transcript</button></div><p id="rText" class="${tc}" hidden style="white-space:pre-wrap;margin-top:12px">${esc(j.text)}</p>` : `<div class="row"><button class="btn small" id="rPlay">${SPK} Read it to me</button></div><p class="${tc}" style="white-space:pre-wrap;margin-top:10px;font-size:16.5px;line-height:1.75">${esc(j.text)}</p>`}
+        ${(j.glossary || []).length ? `<details style="margin-top:10px"><summary class="note">Glossary</summary><table class="ex-table">${j.glossary.map(g => `<tr><td class="${tc}">${esc(g.word)}</td><td>${esc(g.meaning)}</td></tr>`).join("")}</table></details>` : ""}</div><div id="rQs"></div></div>`;
+      $("#rPlay").onclick = () => { stopVoice(); say(j.text, code); };
+      const sl = $("#rSlow"); if (sl) sl.onclick = () => { stopVoice(); say(j.text, code, { rate: .75 }); };
+      const sh = $("#rShow"); if (sh) sh.onclick = () => { $("#rText").hidden = !$("#rText").hidden; };
+      if (listening) setTimeout(() => say(j.text, code), 400);
+      runExercises($("#rQs"), qs, { code, unitTitle: listening ? "Listening" : "Reading", kind: listening ? "listening" : "reading" }, res => {
+        addSkill(listening ? "listening" : "reading", res.score >= 70, code);
+        $("#rQs").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:40px;font-weight:600">${res.score}%</div><p>${res.score >= 80 ? "Excellent comprehension." : "Read it once more and look at the glossary; then try a new one."}</p>${listening ? `<button class="btn" onclick="document.getElementById('rText').hidden=false">Show transcript</button>` : ""}</div>`;
+      });
+    } catch (e) { $("#rOut").innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
+  };
+}
+
+/* ============================================================
+   18. SETTINGS (voices with previews, personality, languages, brain, data)
+   ============================================================ */
+let voiceFilter = "all";
+function renderSettings() {
+  const code = profile.active, list = voicesFor(code), cur = voiceFor(code);
+  const filtered = list.filter(v => voiceFilter === "all" || (voiceFilter === "local" ? v.localService : voiceFilter === "online" ? !v.localService : v.lang.replace("_", "-") === voiceFilter));
+  const accents = [...new Set(list.map(v => v.lang.replace("_", "-")))];
+  const langOpts = (sel) => Object.entries(LANGS).map(([c, l]) => `<option value="${c}" ${c === sel ? "selected" : ""}>${esc(l.name)}</option>`).join("");
+  $("#v-settings").innerHTML = `<div class="view-title"><div><div class="eyebrow">Settings</div><h1>Make it yours</h1><p>Saved in this browser only. Nothing leaves your computer except messages to the AI brain you choose.</p></div></div>
+  <div class="grid g2">
+    <div class="card grid" style="gap:12px"><h3 style="margin:0;font-size:15px">Languages</h3>
+      <label class="field">Your native language <select id="sNative">${langOpts(profile.native)}</select></label>
+      <label class="field">Explanations <select id="sExplain"><option value="native">In my native language when needed</option><option value="immersion">Immersion: in the language I'm learning</option></select></label>
+      <div class="field">Languages you're learning (progress is kept separately)<div class="row">${profile.learning.map(c => `<span class="pill ${c === code ? "blue" : ""}">${esc(LANGS[c].name)} ${profile.learning.length > 1 ? `<button class="btn small ghost" data-rm="${c}" style="padding:0 4px;border:0" aria-label="Stop learning ${esc(LANGS[c].name)}">×</button>` : ""}</span>`).join("")}</div>
+        <div class="row"><select class="sel" id="addLangSel">${Object.entries(LANGS).filter(([c]) => !profile.learning.includes(c)).map(([c, l]) => `<option value="${c}">${esc(l.name)}</option>`).join("")}</select><button class="btn small" id="addLang">Add language</button></div></div>
+      ${code === "en" ? `<label class="field">English variant <select id="sVariant"><option>British</option><option>American</option></select></label>` : ""}
+    </div>
+    <div class="card grid" style="gap:12px"><h3 style="margin:0;font-size:15px">Teacher personality</h3>
+      <div class="subtabs" id="sPers" style="margin:0">${[["sarcastic","Sarcastic"],["casual","Casual"],["professional","Professional"],["patient","Patient teacher"]].map(([k, n]) => `<button data-pers="${k}" aria-pressed="${profile.personality === k}">${n}</button>`).join("")}</div>
+      <div class="row2 grid g2"><label class="field">Sarcasm <input type="range" id="sSarc" min="0" max="3" step="1" value="${profile.sarcasm}"></label><label class="field">Humor <input type="range" id="sHum" min="0" max="3" step="1" value="${profile.humor}"></label></div>
+      <div class="grid g3"><label class="field">Explanations <select id="sLevel"><option value="simple">Simple</option><option value="normal">Normal</option><option value="detailed">Detailed</option></select></label>
+      <label class="field">Difficulty <select id="sDiff"><option value="easy">Gentle</option><option value="normal">Normal</option><option value="hard">Demanding</option></select></label>
+      <label class="field">Daily goal <select id="sGoal"><option value="20">20 XP</option><option value="50">50 XP</option><option value="100">100 XP</option><option value="200">200 XP</option></select></label></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="between"><h3 style="margin:0;font-size:15px">Voice for ${esc(LANGS[code].name)}</h3>
+      <div class="row"><select class="sel" id="vFilter"><option value="all">All voices</option><option value="local">On this device</option><option value="online">Online (often higher quality)</option>${accents.map(a => `<option value="${a}">${a}</option>`).join("")}</select></div></div>
+    <p class="note">Tap ▶ to preview, then choose. Voices come from your computer and browser; newer Macs have "Enhanced" and "Premium" voices you can download in System Settings → Accessibility → Spoken Content → System voice → Manage Voices.${!list.length ? ` <b>No ${esc(LANGS[code].name)} voice is installed on this device yet${LANGS[code].ttsFallback ? "; a fallback voice will be used" : ""}.</b>` : ""}</p>
+    <div class="voices" style="margin-top:10px">${filtered.map(v => `<button class="voice" data-voice="${esc(v.name)}" aria-pressed="${cur && v.name === cur.name}"><span>${esc(v.name)}<small>${esc(v.lang)} · ${v.localService ? "on device" : "online"}</small></span><span class="say" data-preview="${esc(v.name)}" role="button" aria-label="Preview ${esc(v.name)}">▶</span></button>`).join("") || `<div class="empty">No voices match.</div>`}</div>
+    <div class="grid g3" style="margin-top:12px"><label class="field">Speed <input type="range" id="sRate" min=".6" max="1.5" step=".05" value="${profile.rate}"></label><label class="field">Volume <input type="range" id="sVol" min="0" max="1" step=".05" value="${profile.volume}"></label><div class="field">&nbsp;<button class="btn" id="sTest">Test this voice</button></div></div></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card grid" style="gap:10px"><div class="between"><h3 style="margin:0;font-size:15px">AI brain</h3><span class="pill ${brain ? "good" : "warn"}">${brain ? esc(brain.label) : "not connected"}</span></div>
+      <label class="field">Use <select id="sBrain"><option value="auto">Automatic</option><option value="ollama">Ollama (free, on this computer)</option><option value="claude">Claude API (best quality)</option><option value="chrome">Chrome built-in AI</option></select></label>
+      <div class="grid g2"><label class="field">Ollama model <select id="sOModel">${(ollamaModels.length ? ollamaModels : [B().ollamaModel || "(none)"]).map(m => `<option ${m === B().ollamaModel ? "selected" : ""}>${esc(m)}</option>`).join("")}</select></label><label class="field">Claude model <input id="sCModel" value="${esc(B().claudeModel)}"></label></div>
+      <label class="field">Claude API key <input id="sKey" type="password" value="${esc(B().apiKey)}" placeholder="sk-ant-…" autocomplete="off"></label>
+      <div class="row"><button class="btn small" id="sCheck">Check connection</button><button class="btn small ghost" id="sHelp">Setup help</button><label class="row note" style="gap:6px"><input type="checkbox" id="sSmart" ${profile.smart ? "checked" : ""}> Smarter, slower answers</label></div></div>
+    <div class="card grid" style="gap:10px"><h3 style="margin:0;font-size:15px">Your data</h3><p class="note" style="margin:0">Export a backup, move it to another computer, or delete it.</p>
+      <div class="row"><button class="btn small" id="dExport">Export backup</button><label class="btn small" style="display:inline-block">Import backup<input type="file" id="dImport" accept="application/json" hidden></label></div>
+      <div class="row"><button class="btn small" id="dResetLang">Reset ${esc(LANGS[code].name)} progress</button><button class="btn small" id="dWipe" style="color:var(--bad)">Delete everything</button></div><p class="note" id="dMsg"></p></div>
+  </div>`;
+  const S = id => $("#" + id);
+  S("sExplain").value = profile.explainLang; S("sLevel").value = profile.explainLevel; S("sDiff").value = profile.difficulty; S("sGoal").value = String(profile.dailyGoal); S("sBrain").value = B().mode; S("vFilter").value = voiceFilter;
+  if (S("sVariant")) { S("sVariant").value = profile.englishVariant; S("sVariant").onchange = e => { profile.englishVariant = e.target.value; saveProfile(); }; }
+  S("sNative").onchange = e => { profile.native = e.target.value; saveProfile(); toast("Native language saved. New lessons will explain in " + LANGS[profile.native].name + "."); };
+  S("sExplain").onchange = e => { profile.explainLang = e.target.value; saveProfile(); };
+  S("sLevel").onchange = e => { profile.explainLevel = e.target.value; saveProfile(); };
+  S("sDiff").onchange = e => { profile.difficulty = e.target.value; saveProfile(); };
+  S("sGoal").onchange = e => { profile.dailyGoal = +e.target.value; saveProfile(); };
+  S("sSarc").oninput = e => { profile.sarcasm = +e.target.value; saveProfile(); };
+  S("sHum").oninput = e => { profile.humor = +e.target.value; saveProfile(); };
+  $$("[data-pers]").forEach(b => b.onclick = () => { profile.personality = b.dataset.pers; saveProfile(); $$("[data-pers]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+  S("addLang").onclick = () => { const c = S("addLangSel").value; if (!c) return; profile.learning.push(c); profile.active = c; saveProfile(); renderLangSelect(); renderSettings(); toast(LANGS[c].name + " added. Its progress is separate."); };
+  $$("[data-rm]").forEach(b => b.onclick = () => { profile.learning = profile.learning.filter(c => c !== b.dataset.rm); if (!profile.learning.includes(profile.active)) profile.active = profile.learning[0]; saveProfile(); renderLangSelect(); renderSettings(); });
+  S("vFilter").onchange = e => { voiceFilter = e.target.value; renderSettings(); };
+  $$("[data-voice]").forEach(b => b.onclick = e => {
+    const name = b.dataset.voice;
+    if (e.target.closest("[data-preview]")) { const v = VOICES.find(x => x.name === name); stopVoice(); const u = new SpeechSynthesisUtterance(sampleLine(code)); if (v) { u.voice = v; u.lang = v.lang; } u.rate = profile.rate; u.volume = profile.volume; synth.speak(u); return; }
+    profile.voices[code] = name; saveProfile(); $$("[data-voice]").forEach(x => x.setAttribute("aria-pressed", x === b)); stopVoice(); say(sampleLine(code), code);
+  });
+  S("sRate").oninput = e => { profile.rate = +e.target.value; saveProfile(); };
+  S("sVol").oninput = e => { profile.volume = +e.target.value; saveProfile(); };
+  S("sTest").onclick = () => { stopVoice(); say(sampleLine(code), code); };
+  S("sBrain").onchange = async e => { B().mode = e.target.value; saveProfile(); await detectBrain(); renderSettings(); };
+  S("sOModel").onchange = e => { B().ollamaModel = e.target.value; saveProfile(); detectBrain(); };
+  S("sCModel").onchange = e => { B().claudeModel = e.target.value.trim() || "claude-opus-5-5"; saveProfile(); };
+  S("sKey").onchange = async e => { B().apiKey = e.target.value.trim(); saveProfile(); await detectBrain(); renderSettings(); };
+  S("sCheck").onclick = async () => { await detectBrain(); renderSettings(); toast(brain ? "Connected: " + brain.label : "No brain found. Click Setup help."); };
+  S("sHelp").onclick = openBrainHelp;
+  S("sSmart").onchange = e => { profile.smart = e.target.checked; saveProfile(); };
+  S("dExport").onclick = () => {
+    const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("nxxr.")) data[k] = localStorage.getItem(k); }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" })); a.download = `nxxr-academy-backup-${today()}.json`; a.click(); S("dMsg").textContent = "Backup downloaded.";
+  };
+  S("dImport").onchange = async e => { try { const data = JSON.parse(await e.target.files[0].text()); for (const [k, v] of Object.entries(data)) if (k.startsWith("nxxr.")) localStorage.setItem(k, v); location.reload(); } catch { S("dMsg").textContent = "That file isn't an NxxR backup."; } };
+  let wipeArmed = false, resetArmed = false;
+  S("dResetLang").onclick = () => { if (!resetArmed) { resetArmed = true; S("dResetLang").textContent = "Click again to reset"; return; } store.del("prog." + code); delete prog.cache[code]; S("dMsg").textContent = LANGS[code].name + " progress reset."; renderSettings(); };
+  S("dWipe").onclick = () => { if (!wipeArmed) { wipeArmed = true; S("dWipe").textContent = "Click again: this can't be undone"; return; } Object.keys(localStorage).filter(k => k.startsWith("nxxr.")).forEach(k => localStorage.removeItem(k)); location.reload(); };
+}
+function sampleLine(code) {
+  return { en: "Hello! I'm your NxxR teacher. Ready when you are.", fr: "Bonjour ! Je suis ton professeur NxxR. On commence quand tu veux.", ar: "مرحبا! أنا معلمك في إن إكس آر. هل نبدأ؟", es: "¡Hola! Soy tu profesor de NxxR. ¿Empezamos?", ha: "Sannu! Ni ne malaminka na NxxR. Mu fara?", pcm: "How far! Na me be your NxxR teacher. Make we start?", zh: "你好！我是你的NxxR老师。我们开始吧。", ja: "こんにちは！NxxRの先生です。始めましょう。", de: "Hallo! Ich bin dein NxxR-Lehrer. Legen wir los?", pt: "Olá! Sou o teu professor da NxxR. Vamos começar?", it: "Ciao! Sono il tuo insegnante NxxR. Cominciamo?", ru: "Привет! Я твой преподаватель NxxR. Начнём?" }[code] || "Hello!";
+}
+
+/* ============================================================
+   19. ONBOARDING & START
+   ============================================================ */
+function onboarding() {
+  const opts = sel => Object.entries(LANGS).map(([c, l]) => `<option value="${c}" ${c === sel ? "selected" : ""}>${esc(l.name)} · ${esc(l.native)}</option>`).join("");
+  modal(`<div class="eyebrow">Welcome to NxxR Language Academy</div><h2 style="margin:0">Let's set you up</h2>
+    <p class="note" style="margin:0">From your very first word to fluency. Two questions and we start.</p>
+    <label class="field">My native language <select id="oNative">${opts(profile.native)}</select></label>
+    <label class="field">I want to learn <select id="oLearn">${opts(profile.active === profile.native ? "en" : profile.active)}</select></label>
+    <label class="field">Teacher personality <select id="oPers"><option value="sarcastic">Sarcastic (witty, teases you a little)</option><option value="casual">Casual</option><option value="professional">Professional</option><option value="patient">Patient teacher</option></select></label>
+    <p class="note" style="margin:0">Everyone starts at Level 0. Already know the basics? Take a level test from the Course page to skip ahead.</p>
+    <div class="row" style="justify-content:flex-end"><button class="btn primary" id="oGo">Start learning</button></div>`);
+  $("#oGo").onclick = () => {
+    const n = $("#oNative").value, l = $("#oLearn").value;
+    if (n === l) { toast("Pick a language different from your native one."); return; }
+    Object.assign(profile, { native: n, active: l, learning: [l], personality: $("#oPers").value, onboarded: true });
+    saveProfile(); closeModal(); renderLangSelect(); show("dashboard");
+    detectBrain().then(b => { if (!b) openBrainHelp(); });
+  };
+}
+renderLangSelect();
+show("dashboard");
+if (!profile.onboarded) onboarding(); else detectBrain();
+</script>
+</body>
+</html>
