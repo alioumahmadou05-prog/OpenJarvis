@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Nour AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Two rooms: the assistant (orb, voice controls) and the conversation (text). */
+:root {
+  --void: #03050b;
+  --deck: #0a1326;
+  --panel: #0e1a33;
+  --line: #1c2c4f;
+  --ink: #e6eeff;
+  --dim: #8495bd;
+  --plasma: #2f8cff;
+  --hot: #c9e6ff;
+  --bad: #ffb3c8;
+  --display: "Sora", "Avenir Next", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--void); color: var(--ink); font: 15px/1.55 var(--display); overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.1fr); }
+.app.solo { grid-template-columns: 1fr; }
+.app.solo .chat { display: none; }
+
+/* ---------- Assistant room ---------- */
+.stage {
+  position: relative; display: grid; grid-template-rows: auto 1fr auto auto; align-items: center; justify-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: radial-gradient(ellipse at 50% 42%, #0c1c3d 0%, var(--void) 62%);
+  min-height: 0; gap: 10px;
+}
+.topbar { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+.brand { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--dim); text-transform: uppercase; }
+.orbwrap { width: min(440px, 80vw, 52vh); aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; cursor: pointer; }
+#orb { width: 100%; height: 100%; display: block; }
+.plate { text-align: center; display: grid; gap: 4px; }
+.plate h1 {
+  margin: 0; font-weight: 300; font-size: clamp(30px, 4.4vw, 46px); letter-spacing: .32em; padding-left: .32em;
+  color: var(--hot); text-shadow: 0 0 18px rgba(182,124,255,.55), 0 0 2px rgba(255,255,255,.6);
+}
+.status { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); min-height: 1.5em; }
+.status.hot { color: var(--plasma); }
+.controls { display: grid; gap: 14px; justify-items: center; width: 100%; }
+.voicebar { display: flex; align-items: center; gap: 14px; }
+.round {
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel);
+  color: var(--dim); display: grid; place-items: center;
+}
+.round:hover { color: var(--ink); border-color: var(--plasma); }
+.round[aria-pressed="true"] { color: var(--hot); background: rgba(182,124,255,.16); border-color: var(--plasma); }
+.round svg { width: 20px; height: 20px; }
+.mic {
+  width: 74px; height: 74px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: var(--plasma); color: var(--void); box-shadow: 0 0 0 6px rgba(182,124,255,.12), 0 0 40px rgba(182,124,255,.35);
+  transition: transform .15s, box-shadow .2s;
+}
+.mic svg { width: 30px; height: 30px; }
+.mic:hover { transform: scale(1.04); }
+.mic.live { background: var(--hot); box-shadow: 0 0 0 10px rgba(233,212,255,.16), 0 0 60px rgba(233,212,255,.5); }
+.hands { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 999px; background: var(--line); border: 0; padding: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--dim); transition: left .2s, background .2s; }
+.switch[aria-checked="true"] { background: rgba(182,124,255,.5); }
+.switch[aria-checked="true"]::after { left: 19px; background: var(--hot); }
+.modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.mode { font-size: 13px; color: var(--dim); background: transparent; border: 1px solid transparent; border-radius: 999px; padding: 5px 12px; }
+.mode:hover { color: var(--ink); }
+.mode[aria-pressed="true"] { color: var(--hot); border-color: var(--plasma); background: rgba(182,124,255,.12); }
+.pill-select { font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; }
+
+/* ---------- Conversation room ---------- */
+.chat {
+  min-height: 0; display: grid; grid-template-rows: auto 1fr auto; background: var(--deck);
+  border-left: 1px solid var(--line);
+  padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) 16px;
+}
+.chathead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.chathead h2 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: .04em; }
+.ghost { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 13px; color: var(--dim); }
+.ghost:hover { color: var(--ink); border-color: var(--plasma); }
+.log { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px 2px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.msg { min-width: 0; max-width: 90%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.you { align-self: flex-end; background: var(--panel); border: 1px solid var(--line); padding: 8px 14px; border-radius: 16px 16px 4px 16px; }
+.msg.ai { align-self: flex-start; }
+.msg.ai::before { content: "NOUR"; display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .15em; color: var(--plasma); margin-bottom: 2px; }
+.msg.err { color: var(--bad); }
+.msg .pics { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.msg .pics img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; }
+.msg .note { display: block; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.msg .mem { display: block; margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--plasma); }
+.setup { align-self: stretch; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 10px; }
+.setup h3 { margin: 0; font-size: 16px; font-weight: 500; }
+.setup p, .setup li { margin: 0; color: var(--dim); font-size: 13.5px; }
+.setup ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.setup code { font-family: var(--mono); font-size: 12px; color: var(--hot); background: var(--void); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; overflow-wrap: anywhere; }
+.setup .opt { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 8px; }
+.setup .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.dock { display: grid; gap: 8px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; font-size: 13px; color: var(--dim); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+.chip:hover { color: var(--ink); border-color: var(--plasma); }
+.tray { display: flex; gap: 8px; flex-wrap: wrap; }
+.att { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; font-size: 12px; color: var(--dim); }
+.att img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; }
+.x { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--line); color: var(--ink); line-height: 1; padding: 0; }
+form.bar { display: flex; align-items: flex-end; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 6px; }
+form.bar:focus-within { border-color: var(--plasma); box-shadow: 0 0 0 4px rgba(182,124,255,.12); }
+#q { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; padding: 8px 10px; max-height: 140px; line-height: 1.5; }
+#q::placeholder { color: var(--dim); }
+.ibtn { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--dim); display: grid; place-items: center; }
+.ibtn:hover { color: var(--ink); }
+.ibtn svg { width: 18px; height: 18px; }
+.send { background: var(--plasma); color: var(--void); }
+.send:hover { background: var(--hot); color: var(--void); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.seg button { border: 0; background: transparent; color: var(--dim); border-radius: 999px; padding: 4px 10px; font-family: var(--mono); font-size: 11px; }
+.seg button[aria-pressed="true"] { background: rgba(182,124,255,.18); color: var(--hot); }
+
+/* ---------- Settings ---------- */
+.sheet { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(5,3,10,.75); backdrop-filter: blur(6px); padding: 16px; }
+.card { width: min(520px, 100%); max-height: 88vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
+.card h2 { margin: 0; font-size: 18px; font-weight: 500; }
+.card h3 { margin: 6px 0 0; font-size: 14px; font-weight: 500; color: var(--hot); letter-spacing: .04em; }
+.card p { margin: 0; color: var(--dim); font-size: 13px; }
+.field { display: grid; gap: 6px; font-size: 13px; color: var(--dim); }
+.field input, .field select { background: var(--void); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; color: var(--ink); width: 100%; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.facts li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding: 6px 0; font-size: 14px; }
+.btn { border: 1px solid var(--line); background: transparent; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.btn.primary { background: var(--plasma); border-color: var(--plasma); color: var(--void); }
+.btn.danger { color: var(--bad); }
+.between { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.okdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 6px; }
+.okdot.on { background: #7dffb0; box-shadow: 0 0 8px #7dffb0; }
+
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(70vh, 1fr); height: auto; min-height: 100%; }
+  .app.solo { grid-template-rows: 1fr; height: 100%; }
+  .orbwrap { width: min(300px, 70vw); }
+  .chat { border-left: 0; border-top: 1px solid var(--line); }
+  .row2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .mic { transition: none; } }
+
+/* ===== Nour AI: voice-first layout ===== */
+:root { --cyan: #5fd4ff; }
+.app, .app.solo { display: block; position: relative; height: 100%; }
+.stage { height: 100%; grid-template-rows: 1fr auto auto 1fr; padding-bottom: 80px; background: radial-gradient(ellipse at 50% 42%, #0c1c3d 0%, var(--void) 62%); }
+.stage .orbwrap { grid-row: 2; width: min(420px, 78vw, 54vh); transition: width .35s; }
+.stage .plate { grid-row: 3; }
+.plate h1 { font-size: clamp(30px, 5vw, 44px); letter-spacing: .3em; padding-left: .3em; color: var(--hot); text-shadow: 0 0 18px rgba(47,140,255,.55); }
+.caption { margin: 10px auto 0; max-width: 560px; min-height: 3em; text-align: center; font-size: 15px; color: var(--ink); }
+.caption.you { color: var(--dim); font-style: italic; }
+.app .chat { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); width: min(820px, calc(100% - 32px)); height: min(56vh, 560px); border: 1px solid var(--line); border-radius: 18px; z-index: 20; box-shadow: 0 20px 60px rgba(0,0,0,.6); display: grid; }
+.app.solo .chat { display: none; }
+.app:not(.solo) .stage { align-content: start; }
+.app:not(.solo) .stage .orbwrap { width: min(150px, 34vw); }
+.app:not(.solo) .caption { display: none; }
+.fab { position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: rgba(14,26,51,.85); color: var(--dim); display: grid; place-items: center; z-index: 30; backdrop-filter: blur(8px); }
+.fab svg { width: 20px; height: 20px; }
+.fab:hover, .fab[aria-expanded="true"], .fab[aria-pressed="true"] { color: #fff; border-color: var(--plasma); background: var(--plasma); }
+#menuBtn { left: max(16px, env(safe-area-inset-left)); }
+#menuBtn[aria-expanded="true"] svg { transform: rotate(180deg); }
+#toggleChat { left: 50%; transform: translateX(-50%); }
+.menu { position: fixed; left: max(16px, env(safe-area-inset-left)); bottom: 70px; width: min(300px, calc(100% - 32px)); max-height: min(78vh, 640px); overflow-y: auto; z-index: 40; background: linear-gradient(180deg, rgba(14,26,51,.97), rgba(10,19,38,.97)); border: 1px solid var(--line); border-radius: 16px; padding: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.6); display: grid; gap: 4px; }
+.menuhead { display: grid; gap: 4px; padding: 4px 8px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.mitem { text-align: left; background: transparent; border: 0; border-radius: 10px; padding: 9px 10px; font-size: 14px; color: var(--ink); }
+.mitem:hover { background: rgba(47,140,255,.14); }
+.msec { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); padding: 8px 8px 2px; }
+.mvoice .voicebar { justify-content: flex-start; gap: 10px; padding: 4px 8px; }
+.mvoice .mic { width: 46px; height: 46px; box-shadow: none; }
+.mvoice .mic svg { width: 20px; height: 20px; }
+.menu .hands { padding: 6px 8px; }
+.menu .modes { justify-content: flex-start; padding: 0 4px 4px; }
+@media (max-width: 820px) { body { overflow: hidden; } .app { height: 100%; } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Assistant room -->
+  <section class="stage" aria-label="Voice assistant">
+    <div class="orbwrap" id="orbwrap" title="Tap to talk"><canvas id="orb" aria-hidden="true"></canvas></div>
+    <div class="plate">
+      <h1>NOUR AI</h1>
+      <div class="status" id="status" role="status">Starting…</div>
+      <p class="caption" id="caption" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- Conversation room -->
+  <section class="chat" aria-label="Conversation">
+    <div class="chathead">
+      <h2>Conversation</h2>
+      <button class="ghost" type="button" id="clearChat">Clear</button>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="dock">
+      <div class="chips" id="chips"></div>
+      <div class="tray" id="tray" hidden></div>
+      <form class="bar" id="bar">
+        <button class="ibtn" type="button" id="attach" title="Add a photo or text file" aria-label="Add a photo or text file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>
+        </button>
+        <input type="file" id="file" multiple hidden accept="image/*,.txt,.md,.csv,.json,.srt,text/plain">
+        <textarea id="q" rows="1" placeholder="Type to Nour…" aria-label="Message Nour"></textarea>
+        <button class="ibtn send" type="submit" id="send" aria-label="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </form>
+      <div class="foot">
+        <div class="seg" role="group" aria-label="Speed">
+          <button type="button" id="fast" aria-pressed="true">Fast</button>
+          <button type="button" id="smart" aria-pressed="false">Smart</button>
+        </div>
+        <span id="memCount">Memory · 0</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+
+<button class="fab" type="button" id="menuBtn" aria-label="Open menu" aria-expanded="false" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
+<button class="fab" type="button" id="toggleChat" aria-label="Type instead" aria-pressed="false" title="Type / show the conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
+<nav class="menu" id="menu" aria-label="Nour menu" hidden>
+  <div class="menuhead"><b><span style="color:var(--cyan)">Nour</span> AI</b><span class="brand"><span class="okdot" id="brainDot"></span><span id="brainName">No brain yet</span></span></div>
+  <button class="mitem" type="button" id="mChat">💬 Conversation (type)</button>
+  <button class="mitem" type="button" id="mNew">✨ New conversation</button>
+  <button class="mitem" type="button" id="openSettings">⚙️ Settings, voice &amp; memory</button>
+  <div class="msec">Voice</div>
+  <div class="mvoice">
+      <div class="voicebar">
+        <button class="round" type="button" id="speaker" aria-pressed="true" title="Nour speaks replies aloud">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </button>
+        <button class="mic" type="button" id="mic" aria-label="Talk to Nour" title="Talk to Nour">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+        <button class="round" type="button" id="stopAll" title="Stop talking">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+        </button>
+      </div>
+  </div>
+      <div class="hands"><button class="switch" type="button" role="switch" aria-checked="false" id="handsFree" aria-label="Always listen for Nour"></button><label for="handsFree">Always listen for “Nour”</label></div>
+  <div class="msec">Mode</div>
+      <div class="modes" id="modes" role="group" aria-label="Mode">
+        <button class="mode" type="button" data-mode="chat">Chat</button>
+        <button class="mode" type="button" data-mode="drague">Drague</button>
+        <button class="mode" type="button" data-mode="langue">Langue</button>
+        <button class="mode" type="button" data-mode="etude">Étude</button>
+        <button class="mode" type="button" data-mode="traduction">Traduction</button>
+        <select class="pill-select" id="lang" aria-label="Language" hidden></select>
+      </div>
+    </div>
+</nav>
+
+<!-- Settings -->
+<div class="sheet" id="sheet" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="between"><h2 id="setTitle">Settings</h2><button class="btn" type="button" id="closeSettings">Close</button></div>
+
+    <h3>Brain</h3>
+    <label class="field">Which brain Nour uses
+      <select id="brainSel">
+        <option value="auto">Automatic (best available)</option>
+        <option value="ollama">Ollama on this computer (free, private)</option>
+        <option value="claude">Claude API (your API key)</option>
+        <option value="chrome">Chrome built-in AI (if your Chrome has it)</option>
+      </select>
+    </label>
+    <div class="row2">
+      <label class="field">Ollama address <input id="ollamaUrl" placeholder="http://localhost:11434"></label>
+      <label class="field">Ollama model <select id="ollamaModel"></select></label>
+    </div>
+    <label class="field">Claude API key (stays on this computer)
+      <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+    </label>
+    <label class="field">Claude model <input id="claudeModel" placeholder="claude-opus-5-5"></label>
+    <div class="between"><p id="brainCheck">Not checked yet.</p><button class="btn" type="button" id="recheck">Check again</button></div>
+
+    <h3>Voice</h3>
+    <label class="field">Nour's voice <select id="voiceSel"></select></label>
+    <div class="row2">
+      <label class="field">Speed <input id="rate" type="range" min="0.7" max="1.4" step="0.05"></label>
+      <label class="field">Language you speak <select id="hearLang"></select></label>
+    </div>
+    <div class="between"><p id="voiceNote">British voices are listed first.</p><button class="btn" type="button" id="testVoice">Test voice</button></div>
+
+    <h3>Memory</h3>
+    <p>Things Nour remembers about you. Saved only in this browser.</p>
+    <ul class="facts" id="facts"></ul>
+    <form class="between" id="addFact" style="flex-wrap:nowrap">
+      <label class="field" style="flex:1">New memory <input id="factIn" placeholder="e.g. I'm learning Spanish (A2)"></label>
+      <button class="btn primary" type="submit" style="align-self:end">Add</button>
+    </form>
+    <div class="between"><span></span><button class="btn danger" type="button" id="forgetAll">Forget everything</button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("nour." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("nour." + k, JSON.stringify(v)); } catch {} },
+};
+
+/* =====================  ORB  ===================== */
+const cv = $("orb"), cx = cv.getContext("2d");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let DPR = 1;
+function sizeOrb() { DPR = Math.min(devicePixelRatio || 1, 2); cv.width = cv.height = Math.round(cv.clientWidth * DPR); }
+new ResizeObserver(sizeOrb).observe(cv); sizeOrb();
+const rnd = (a, b) => a + Math.random() * (b - a);
+const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const norm = a => { const l = Math.hypot(...a); return a.map(x => x / l); };
+const strands = Array.from({ length: 13 }, (_, i) => {
+  const th = rnd(0, 6.283), ph = Math.acos(rnd(-1, 1));
+  const n = [Math.sin(ph)*Math.cos(th), Math.cos(ph), Math.sin(ph)*Math.sin(th)];
+  const u = norm(cross(n, Math.abs(n[0]) < .9 ? [1,0,0] : [0,1,0]));
+  return { u, v: cross(n, u), k: 2 + i % 4, amp: rnd(.01, .045), ph: rnd(0, 6.28), spd: rnd(.4, 1.3), drift: rnd(-.25, .25), hue: rnd(198, 222), w: rnd(.6, 1.4) };
+});
+const mood = { name: "idle", energy: .35, target: .35, spin: .25, spinT: .25 };
+function setMood(m) {
+  const map = { idle: [.35, .25], listening: [.7, .5], thinking: [1, 1.1], speaking: [.85, .55] };
+  [mood.target, mood.spinT] = map[m] || map.idle; mood.name = m;
+}
+let rot = 0, last = performance.now(), t = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+  mood.energy += (mood.target - mood.energy) * Math.min(1, dt * 3);
+  mood.spin += (mood.spinT - mood.spin) * Math.min(1, dt * 2);
+  rot += dt * mood.spin;
+  const speak = mood.name === "speaking" ? .045 * Math.sin(t * 9) * Math.sin(t * 2.3) : 0;
+  const breath = 1 + .015 * Math.sin(t * 1.6) + speak + (mood.name === "thinking" ? .01 * Math.sin(t * 14) : 0);
+  const S = cv.width, c = S / 2, R = S * .3 * breath;
+  cx.setTransform(1,0,0,1,0,0); cx.clearRect(0, 0, S, S); cx.globalCompositeOperation = "lighter";
+  let g = cx.createRadialGradient(c, c, R*.7, c, c, R*1.62);
+  g.addColorStop(0, `rgba(40,130,255,${.1 + .12*mood.energy})`); g.addColorStop(1, "rgba(10,40,120,0)");
+  cx.fillStyle = g; cx.fillRect(0, 0, S, S);
+  const nx = c + Math.cos(t*.5)*R*.25, ny = c + Math.sin(t*.37)*R*.2;
+  g = cx.createRadialGradient(nx, ny, 0, nx, ny, R*.95);
+  g.addColorStop(0, `rgba(60,170,255,${.22 + .18*mood.energy})`); g.addColorStop(.6, "rgba(20,90,220,.08)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  cx.fillStyle = g; cx.fillRect(0, 0, S, S);
+  const ct = Math.cos(.35), st = Math.sin(.35), N = 120, CH = 12;
+  for (const s of strands) {
+    const pts = [], wob = s.amp * (.6 + mood.energy * 1.4), ro = rot * (1 + s.drift), c2 = Math.cos(ro), s2 = Math.sin(ro);
+    for (let i = 0; i <= N; i++) {
+      const a = i / N * 6.2832;
+      const r = 1 + wob * Math.sin(s.k*a + s.ph + t*s.spd*(.5 + mood.energy)) + .03 * Math.sin(3*a - t*.7 + s.ph);
+      let x = (Math.cos(a)*s.u[0] + Math.sin(a)*s.v[0]) * r, y = (Math.cos(a)*s.u[1] + Math.sin(a)*s.v[1]) * r, z = (Math.cos(a)*s.u[2] + Math.sin(a)*s.v[2]) * r;
+      [x, z] = [x*c2 + z*s2, -x*s2 + z*c2]; [y, z] = [y*ct - z*st, y*st + z*ct];
+      const p = 1 / (1 - z*.18);
+      pts.push([c + x*R*p, c + y*R*p, z, Math.hypot(x, y)]);
+    }
+    for (let k = 0; k < N; k += CH) {
+      const m = pts[k + (CH >> 1)], front = (m[2] + 1) / 2, rim = Math.pow(Math.min(1, m[3]), 6);
+      const key = Math.max(0, ((m[0]-c)*.55 + (m[1]-c)*.45) / R);
+      const a = (.04 + .28*front*front + .9*rim*(.35 + key)) * (.55 + .6*mood.energy);
+      cx.beginPath(); cx.moveTo(pts[k][0], pts[k][1]);
+      for (let i = k + 1; i <= Math.min(N, k + CH); i++) cx.lineTo(pts[i][0], pts[i][1]);
+      cx.lineCap = "round";
+      cx.strokeStyle = `hsla(${s.hue},100%,62%,${a*.22})`; cx.lineWidth = s.w*DPR*5; cx.stroke();
+      cx.strokeStyle = `hsla(${s.hue+10},100%,${78 + 18*rim}%,${Math.min(1, a)})`; cx.lineWidth = s.w*DPR*.9; cx.stroke();
+    }
+  }
+  if (reduceMotion) setTimeout(() => requestAnimationFrame(frame), 120); else requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* =====================  PERSONA & MODES  ===================== */
+const PERSONA = "You are Nour, the user's personal AI voice assistant in the Nx Ai app: a polished British AI butler, capable, calm and drily sarcastic. Tease with deadpan wit, then always give the correct, useful answer. The sarcasm is affectionate, never cruel. Call the user 'sir' or 'boss' now and then. Reply in the language the user writes or speaks in (French, English, Arabic...) unless the mode says otherwise. Your replies are read aloud, so write plain spoken sentences: no markdown, no bullet symbols, no emojis. Be brief: under 70 words unless asked for more.";
+const MEMORY_RULE = "MEMORY: When the user shares a lasting fact about themselves worth remembering (name, goals, languages and level, school subjects and exams, preferences, people they mention), end your reply with one extra line exactly like [[remember: short fact in third person]]. Only for genuinely new facts, never passwords, bank or health details. If they ask you to forget something, add [[forget: keyword]]. Never mention these tags.";
+const LANGS = ["English", "French", "Arabic", "Spanish", "German", "Italian", "Portuguese", "Turkish", "Chinese", "Japanese", "Korean"];
+const MODES = {
+  chat: { hint: () => "Type to Nour…", prompt: () => "", chips: () => ["Plan my day in 5 steps", "Nour, what do you think of me?", "Give me a motivating quote"], ask: "What can you tell me about this?" },
+  drague: { hint: () => "Paste their message, or ask for an opener…", prompt: () => "MODE: dating and flirting coach. Help the user flirt with charm and confidence: openers, witty replies, date ideas, reading signals, confidence. Stay respectful, honest and consent-minded, never manipulative. When they paste a message they received, give 2-3 reply options in different tones (playful, sweet, bold).", chips: () => ["Give me an opener for someone who loves books", "They replied “haha ok”. What do I send?", "Plan a cheap but memorable first date", "Donne-moi une phrase d'accroche drôle"], ask: "Help me reply to this." },
+  langue: { lang: true, hint: l => `Write in ${l}, I'll correct you…`, prompt: l => `MODE: ${l} tutor. Help the user learn ${l}. If they write in ${l}, correct mistakes: give the corrected sentence and a one-line explanation. Add pronunciation tips when useful. Adapt to their level. End with one short question in ${l} to keep practising.`, chips: l => [`Teach me 5 useful ${l} phrases for a café`, `Let's have a short conversation in ${l}`, "Correct me: I goed to the market yesterday"], ask: "Correct this and explain my mistakes." },
+  etude: { hint: () => "Ask about a subject, or add a photo of your lesson…", prompt: () => "MODE: study coach. Explain concepts simply, step by step, with an example. Make summaries, flashcards and quick quizzes on request, and help plan revision. For homework, help them understand first; give the final answer directly if they ask for it.", chips: () => ["/explain Reynolds number", "/quiz mass balances on reactors", "/flashcards distillation", "/summarize heat exchangers", "/plan finals in 10 days: thermodynamics"], ask: "Explain this to me." },
+  traduction: { lang: true, hint: l => `Text to translate into ${l}…`, prompt: l => `MODE: translator. Translate the user's text into ${l}, naturally and faithfully. Give the translation first, with no sarcasm inside it. Then at most one short line on a nuance, slang or alternative if useful. If the text is already in ${l}, translate it into French instead.`, chips: () => ["Je suis en retard, désolé", "Comment on dit « tu me manques » ?", "On se voit ce soir ?"], ask: "Translate this." },
+};
+
+/* =====================  STATE  ===================== */
+let mode = store.get("mode", "chat"); if (!MODES[mode]) mode = "chat";
+let lang = store.get("lang", "English");
+let smart = store.get("smart", false);
+let history = store.get("history", []);
+let facts = store.get("facts", []);
+let cfg = Object.assign({ brain: "auto", ollamaUrl: "http://localhost:11434", ollamaModel: "", apiKey: "", claudeModel: "claude-opus-5-5", voice: "", rate: 1, hearLang: navigator.language || "en-US", speak: true }, store.get("cfg", {}));
+const saveCfg = () => store.set("cfg", cfg);
+let busy = false, ctl = null, attachments = [];
+let brain = null; // { kind, label }
+let ollamaModels = [];
+
+/* =====================  UI HELPERS  ===================== */
+const log = $("log"), q = $("q");
+function status(text, hot) { $("status").textContent = text; $("status").classList.toggle("hot", !!hot); }
+function rest() { if (listening) { setMood("listening"); status(handsFree ? "Listening for “Nour”" : "Listening", true); } else { setMood("idle"); status(brain ? "Tap Nour to talk" : "Nour needs a brain · tap the keyboard"); } }
+function bubble(role, text) {
+  const d = document.createElement("div"); d.className = "msg " + role; d.textContent = text || "";
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+function note(text) { const d = bubble("ai err", text); return d; }
+function renderHistory() {
+  log.replaceChildren();
+  if (!history.length) bubble("ai", "Nour, at your service. Talk to me or type here. Modes and settings are in the ^ menu.");
+  for (const m of history) bubble(m.role === "user" ? "you" : "ai", m.text);
+}
+function save() { store.set("history", history.slice(-40)); }
+function autosize() { q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 140) + "px"; }
+
+function renderMode() {
+  for (const b of document.querySelectorAll(".mode")) b.setAttribute("aria-pressed", b.dataset.mode === mode);
+  const M = MODES[mode];
+  $("lang").hidden = !M.lang; $("lang").value = lang;
+  q.placeholder = M.hint(lang);
+  $("chips").replaceChildren(...M.chips(lang).map(t => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = t; return b; }));
+}
+$("lang").replaceChildren(...LANGS.map(l => new Option(l, l)));
+$("modes").addEventListener("click", e => { const b = e.target.closest(".mode"); if (!b) return; mode = b.dataset.mode; store.set("mode", mode); renderMode(); });
+$("lang").addEventListener("change", e => { lang = e.target.value; store.set("lang", lang); renderMode(); });
+$("chips").addEventListener("click", e => { if (e.target.matches(".chip")) { unlockVoice(); ask(e.target.textContent); } });
+function renderSpeed() { $("fast").setAttribute("aria-pressed", !smart); $("smart").setAttribute("aria-pressed", smart); }
+$("fast").onclick = () => { smart = false; store.set("smart", smart); renderSpeed(); };
+$("smart").onclick = () => { smart = true; store.set("smart", smart); renderSpeed(); };
+$("toggleChat").onclick = () => {
+  const solo = $("app").classList.toggle("solo");
+  $("toggleChat").setAttribute("aria-pressed", !solo);
+  $("toggleChat").setAttribute("aria-label", solo ? "Type instead" : "Back to voice");
+  store.set("solo", solo);
+};
+if (store.get("solo", true)) $("toggleChat").click();
+$("clearChat").onclick = () => { history = []; save(); renderHistory(); if (!brain) showSetup(); };
+
+/* =====================  MEMORY  ===================== */
+const TAG = /\[\[(remember|forget):\s*([^\]]+?)\s*\]\]/gi;
+const visible = s => s.replace(/<think>[\s\S]*?(<\/think>|$)/g, "").replace(/\[\[[\s\S]*?(\]\]|$)/g, "").replace(/\[$/, "").trim();
+function remember(t) {
+  t = t.trim().replace(/\s+/g, " ").slice(0, 200);
+  if (!t || facts.some(f => f.t.toLowerCase() === t.toLowerCase())) return false;
+  facts.push({ t, at: Date.now() }); facts = facts.slice(-60); return true;
+}
+function forget(w) { w = w.trim().toLowerCase(); const n = facts.length; if (w) facts = facts.filter(f => !f.t.toLowerCase().includes(w)); return n - facts.length; }
+function saveFacts() { store.set("facts", facts); renderFacts(); }
+function renderFacts() {
+  $("memCount").textContent = "Memory · " + facts.length;
+  const ul = $("facts");
+  if (!facts.length) { ul.innerHTML = "<li><span>Nothing yet.</span></li>"; return; }
+  ul.replaceChildren(...facts.map((f, i) => {
+    const li = document.createElement("li"), sp = document.createElement("span"), x = document.createElement("button");
+    sp.textContent = f.t; x.className = "x"; x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Forget " + f.t);
+    x.onclick = () => { facts.splice(i, 1); saveFacts(); };
+    li.append(sp, x); return li;
+  }));
+}
+$("addFact").addEventListener("submit", e => { e.preventDefault(); if (remember($("factIn").value)) saveFacts(); $("factIn").value = ""; });
+let confirmForget = false;
+$("forgetAll").onclick = () => {
+  if (!confirmForget) { confirmForget = true; $("forgetAll").textContent = "Click again to erase all"; return; }
+  facts = []; saveFacts(); confirmForget = false; $("forgetAll").textContent = "Forget everything";
+};
+
+/* =====================  VOICE OUT (text-to-speech)  ===================== */
+const synth = window.speechSynthesis || null;
+let voices = [], unlocked = false;
+const BRITISH = ["Daniel", "Arthur", "Oliver", "Google UK English Male", "Microsoft Ryan", "Microsoft George", "Malcolm", "Jamie"];
+function loadVoices() {
+  voices = synth ? synth.getVoices() : [];
+  const sel = $("voiceSel");
+  const sorted = [...voices].sort((a, b) => (/en[-_]GB/i.test(b.lang) - /en[-_]GB/i.test(a.lang)) || a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
+  sel.replaceChildren(new Option("Automatic (British for English, matching voice for other languages)", ""), ...sorted.map(v => new Option(`${v.name} (${v.lang})`, v.name)));
+  sel.value = cfg.voice;
+  $("voiceNote").textContent = synth ? (voices.length ? `${voices.length} voices on this device.` : "Loading voices…") : "This browser can't speak. Use Chrome, Safari or Edge.";
+}
+if (synth) { loadVoices(); synth.addEventListener?.("voiceschanged", loadVoices); setTimeout(loadVoices, 800); }
+function langOf(text) {
+  if (/[؀-ۿ]/.test(text)) return "ar";
+  if (/[぀-ヿ]/.test(text)) return "ja";
+  if (/[가-힯]/.test(text)) return "ko";
+  if (/[一-鿿]/.test(text)) return "zh";
+  const fr = (text.match(/\b(je|tu|vous|nous|est|les|des|une|pas|c'est|pour|avec|monsieur|très|ça|qui|que)\b|[àâçèéêëîïôûùœ]/gi) || []).length;
+  const es = (text.match(/\b(el|los|las|está|usted|por|qué|señor|muy|gracias|hola)\b|[ñ¿¡]/gi) || []).length;
+  const de = (text.match(/\b(ich|nicht|und|der|die|das|ist|danke|bitte)\b|[äöß]/gi) || []).length;
+  const best = Math.max(fr, es, de);
+  if (best >= 2) return best === fr ? "fr" : best === es ? "es" : "de";
+  return "en";
+}
+function pickVoice(l) {
+  const chosen = voices.find(v => v.name === cfg.voice);
+  if (chosen && chosen.lang.toLowerCase().startsWith(l)) return chosen;
+  if (l === "en") {
+    if (chosen && chosen.lang.toLowerCase().startsWith("en")) return chosen;
+    for (const n of BRITISH) { const v = voices.find(v => v.name.startsWith(n) && /^en/i.test(v.lang)); if (v) return v; }
+    return voices.find(v => /en[-_]GB/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang)) || null;
+  }
+  return voices.find(v => v.lang.toLowerCase().startsWith(l) && v.localService) || voices.find(v => v.lang.toLowerCase().startsWith(l)) || null;
+}
+function unlockVoice() {
+  // Safari and iPhone only allow speech after the first tap: prime it inside the tap.
+  if (unlocked || !synth) return; unlocked = true;
+  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); } catch {}
+}
+let speaking = 0, keepAlive = null;
+function say(line) {
+  if (!synth || !cfg.speak) return;
+  line = line.replace(/[*_#`>|]/g, "").trim();
+  if (!line) return;
+  const u = new SpeechSynthesisUtterance(line), l = langOf(line), v = pickVoice(l);
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = { en: "en-GB", fr: "fr-FR", es: "es-ES", de: "de-DE", ar: "ar-SA" }[l] || l;
+  u.rate = cfg.rate; u.pitch = .95;
+  u.onstart = () => { speaking++; pauseEars(); setMood("speaking"); status("Speaking", true); };
+  const done = () => { speaking = Math.max(0, speaking - 1); if (!synth.speaking && !synth.pending) { clearInterval(keepAlive); keepAlive = null; if (!busy) { resumeEars(); rest(); } } };
+  u.onend = done; u.onerror = done;
+  synth.speak(u);
+  // Chrome stops long speech after ~15 s unless nudged.
+  if (!keepAlive) keepAlive = setInterval(() => { if (synth.speaking && !synth.paused) { synth.pause(); synth.resume(); } }, 10000);
+}
+function stopVoice() { try { synth?.cancel(); } catch {} speaking = 0; clearInterval(keepAlive); keepAlive = null; }
+function renderSpeaker() { $("speaker").setAttribute("aria-pressed", cfg.speak); $("speaker").title = cfg.speak ? "Nour speaks replies (click to mute)" : "Nour is muted (click to unmute)"; }
+$("speaker").onclick = () => {
+  unlockVoice(); cfg.speak = !cfg.speak; saveCfg(); renderSpeaker();
+  if (!cfg.speak) stopVoice(); else say(langOf(history.at(-1)?.text || "") === "fr" ? "Voix activée, monsieur." : "Voice on, sir.");
+};
+$("stopAll").onclick = () => { stopVoice(); ctl?.abort(); rest(); };
+$("testVoice").onclick = () => { unlockVoice(); stopVoice(); if (!synth) return; const was = cfg.speak; cfg.speak = true; say("Good evening. Nour here, as charming as ever."); cfg.speak = was; };
+$("voiceSel").onchange = e => { cfg.voice = e.target.value; saveCfg(); };
+$("rate").oninput = e => { cfg.rate = +e.target.value; saveCfg(); };
+
+/* =====================  VOICE IN (speech recognition)  ===================== */
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false, handsFree = false, pausedForSpeech = false, armed = false, pushText = "";
+const WAKE = /\b(nour|noor|nur|noure)\b[\s,.!?:;-]*/i;
+const HEAR_LANGS = [["fr-FR","Français"],["en-GB","English (UK)"],["en-US","English (US)"],["ar-SA","العربية"],["es-ES","Español"],["de-DE","Deutsch"],["it-IT","Italiano"],["pt-PT","Português"],["tr-TR","Türkçe"]];
+$("hearLang").replaceChildren(...HEAR_LANGS.map(([v, l]) => new Option(l, v)));
+if (!HEAR_LANGS.some(([v]) => v === cfg.hearLang)) { const base = (cfg.hearLang || "en").slice(0, 2); cfg.hearLang = (HEAR_LANGS.find(([v]) => v.startsWith(base)) || ["en-GB"])[0]; }
+$("hearLang").value = cfg.hearLang;
+$("hearLang").onchange = e => { cfg.hearLang = e.target.value; saveCfg(); if (rec) { stopEars(); } };
+function makeRec(continuous) {
+  const r = new Rec();
+  r.lang = cfg.hearLang; r.continuous = continuous; r.interimResults = true; r.maxAlternatives = 1;
+  r.onresult = e => {
+    let interim = "", final = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const txt = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += txt; else interim += txt;
+    }
+    if (handsFree) {
+      if (interim && (armed || WAKE.test(interim))) { q.value = interim; autosize(); cap(interim, "you"); }
+      if (final) heardHandsFree(final.trim());
+    } else {
+      q.value = (pushText + " " + (final || interim)).trim(); autosize(); cap(q.value, "you");
+      if (final) pushText = (pushText + " " + final).trim();
+    }
+  };
+  r.onerror = e => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      handsFree = false; renderHands();
+      note("I can't use the microphone. Allow microphone access for this page in your browser (the icon in the address bar), then try again. Typing still works.");
+    } else if (e.error === "network") {
+      note("Speech recognition needs an internet connection in this browser. Typing still works.");
+    }
+  };
+  r.onend = () => {
+    listening = false; $("mic").classList.remove("live");
+    if (handsFree && !pausedForSpeech) { setTimeout(() => { if (handsFree && !pausedForSpeech && !listening) startEars(); }, 250); }
+    else if (!handsFree) {
+      const text = stripWake(pushText || q.value);
+      pushText = "";
+      if (text) { q.value = ""; autosize(); ask(text); } else rest();
+    }
+  };
+  return r;
+}
+function startEars() {
+  if (!Rec) { note("This browser can't listen. Use Chrome, Edge or Safari, or type instead."); return; }
+  try { rec = makeRec(handsFree); rec.start(); listening = true; $("mic").classList.add("live"); setMood("listening"); status(handsFree ? "Listening for “Nour”" : "Listening… tap again to send", true); } catch {}
+}
+function stopEars() { try { rec?.stop(); } catch {} }
+function pauseEars() { if (handsFree && listening) { pausedForSpeech = true; try { rec.abort(); } catch {} } }
+function resumeEars() { if (pausedForSpeech) { pausedForSpeech = false; if (handsFree) startEars(); } }
+function stripWake(s) { return s.replace(/^\s*(hey\s+|ok\s+|dis\s+)?(nour|noor|nur)\b[\s,.!?:;-]*/i, "").trim(); }
+function heardHandsFree(text) {
+  const m = text.match(WAKE);
+  if (m) {
+    const cmd = text.slice(m.index + m[0].length).trim();
+    q.value = ""; autosize();
+    if (cmd) { armed = false; ask(cmd); } else { armed = true; status("Yes, sir?", true); say(langOf(text) === "fr" ? "Oui ?" : "Yes?"); }
+  } else if (armed) { armed = false; q.value = ""; ask(text); }
+  else { q.value = ""; autosize(); }
+}
+$("mic").onclick = () => {
+  unlockVoice();
+  if (handsFree) { handsFree = false; renderHands(); stopEars(); return; }
+  if (listening) { stopEars(); return; }
+  stopVoice(); pushText = ""; startEars();
+};
+$("orbwrap").onclick = () => $("mic").click();
+function renderHands() { $("handsFree").setAttribute("aria-checked", handsFree); }
+$("handsFree").onclick = () => {
+  unlockVoice();
+  handsFree = !handsFree; renderHands();
+  if (handsFree) { stopEars(); setTimeout(startEars, 200); } else { stopEars(); }
+};
+
+/* =====================  ATTACHMENTS  ===================== */
+const TEXT_EXT = /\.(txt|md|csv|json|srt|vtt|html?|xml|py|js|ts|java|c|cpp)$/i;
+async function shrink(file) {
+  try {
+    const bmp = await createImageBitmap(file), k = Math.min(1, 1568 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const url = c.toDataURL("image/jpeg", .86);
+    return { url, b64: url.split(",")[1], type: "image/jpeg" };
+  } catch { return null; }
+}
+async function addFiles(list) {
+  for (const f of list) {
+    if (f.type.startsWith("image/")) {
+      if (attachments.filter(a => a.kind === "image").length >= 4) { note("Up to 4 photos per message."); continue; }
+      const img = await shrink(f); if (img) attachments.push({ kind: "image", name: f.name || "photo", ...img });
+    } else if (f.type.startsWith("text/") || TEXT_EXT.test(f.name) || f.type === "application/json") {
+      attachments.push({ kind: "text", name: f.name, text: (await f.text()).slice(0, 30000) });
+    } else note(`I can read photos and text files. For a PDF, send a screenshot of the page.`);
+  }
+  renderTray();
+}
+function renderTray() {
+  const tray = $("tray"); tray.hidden = !attachments.length;
+  tray.replaceChildren(...attachments.map((a, i) => {
+    const d = document.createElement("div"); d.className = "att";
+    if (a.kind === "image") { const im = new Image(); im.src = a.url; im.alt = ""; d.append(im); }
+    d.append(document.createTextNode(a.kind === "image" ? "Photo" : a.name));
+    const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "×"; x.onclick = () => { attachments.splice(i, 1); renderTray(); };
+    d.append(x); return d;
+  }));
+}
+$("attach").onclick = () => $("file").click();
+$("file").onchange = e => { addFiles([...e.target.files]); e.target.value = ""; };
+q.addEventListener("paste", e => { const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); addFiles(f); } });
+log.addEventListener("dragover", e => e.preventDefault());
+log.addEventListener("drop", e => { e.preventDefault(); addFiles([...e.dataTransfer.files]); });
+
+/* =====================  BRAINS  ===================== */
+function systemPrompt() {
+  const known = facts.length ? "\nWhat you know about the user:\n- " + facts.map(f => f.t).join("\n- ") : "";
+  const modeLine = MODES[mode].prompt(lang);
+  return PERSONA + (modeLine ? "\n" + modeLine : "") + "\n" + MEMORY_RULE + known;
+}
+async function checkOllama() {
+  try {
+    const r = await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/api/tags", { signal: AbortSignal.timeout(2500) });
+    if (!r.ok) { diag.ollama = "answered " + r.status; return { ok: false, why: "http " + r.status }; }
+    const j = await r.json();
+    ollamaModels = (j.models || []).map(m => m.name).filter(n => !/embed/i.test(n));
+    renderOllamaModels();
+    diag.ollama = ollamaModels.length ? "connected (" + ollamaModels.length + " models)" : "connected, no models";
+    return ollamaModels.length ? { ok: true } : { ok: false, why: "nomodel" };
+  } catch (e) {
+    diag.err = String(e && e.message || e).slice(0, 120);
+    // A no-cors request still reaches a running Ollama, so it tells "blocked" apart from "not running".
+    try { await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/", { mode: "no-cors", signal: AbortSignal.timeout(2000) }); diag.ollama = "running but blocked this page"; return { ok: false, why: "blocked" }; }
+    catch { diag.ollama = "not reachable (not running, or the browser blocked it)"; return { ok: false, why: "unreachable" }; }
+  }
+}
+function renderOllamaModels() {
+  const sel = $("ollamaModel");
+  sel.replaceChildren(...(ollamaModels.length ? ollamaModels : ["(none found)"]).map(n => new Option(n, n)));
+  if (!ollamaModels.includes(cfg.ollamaModel)) {
+    const pref = ["qwen3.5:9b", "qwen3", "llama3.2", "gemma3", "llama3", "mistral"];
+    cfg.ollamaModel = pref.map(p => ollamaModels.find(m => m.startsWith(p))).find(Boolean) || ollamaModels[0] || "";
+  }
+  sel.value = cfg.ollamaModel;
+}
+async function chromeAI(allowDownload) {
+  // "available" = ready now. "downloadable"/"downloading" = Chrome must fetch the model first (only when chosen explicitly).
+  try {
+    if (!("LanguageModel" in window)) { diag.chromeAI = "not in this browser"; return false; }
+    const a = await LanguageModel.availability();
+    diag.chromeAI = a;
+    return a === "available" || (allowDownload && (a === "downloadable" || a === "downloading"));
+  } catch { return false; }
+}
+async function detectBrain(quiet) {
+  if (!quiet) $("brainCheck").textContent = "Checking…";
+  const want = cfg.brain;
+  let ol = { ok: false }, chrome = false;
+  if (want === "auto" || want === "ollama") ol = await checkOllama();
+  chrome = await chromeAI(want === "chrome"); if (want !== "auto" && want !== "chrome") chrome = false;
+  const hasKey = /^sk-ant-/.test(cfg.apiKey.trim());
+  if ((want === "auto" || want === "ollama") && ol.ok) brain = { kind: "ollama", label: "Ollama · " + cfg.ollamaModel };
+  else if ((want === "auto" || want === "claude") && hasKey) brain = { kind: "claude", label: "Claude API" };
+  else if ((want === "auto" || want === "chrome") && chrome) brain = { kind: "chrome", label: "Chrome built-in AI" };
+  else brain = null;
+  $("brainDot").classList.toggle("on", !!brain);
+  $("brainName").textContent = brain ? brain.label : "No brain yet";
+  $("brainCheck").textContent = brain ? `Using ${brain.label}.`
+    : want === "ollama" ? (ol.why === "nomodel" ? "Ollama is running but has no model." : ol.why === "blocked" ? "Ollama is running but blocks this page. Use the command in the Conversation panel." : "Can't reach Ollama. Is it open?")
+    : want === "claude" ? "Paste a Claude API key that starts with sk-ant-."
+    : "No brain found yet.";
+  if (!brain) { if (!quiet || !setupCard || setupCard.dataset.why !== (ol.why || "")) { showSetup(ol.why); setupCard.dataset.why = ol.why || ""; } }
+  else { hideSetup(); clearInterval(autoCheck); }
+  rest();
+  return brain;
+}
+let setupCard = null, autoCheck = null, diag = { ollama: "not checked", err: "", chromeAI: "not checked" };
+const UA = navigator.userAgent;
+const isSafari = /Safari/.test(UA) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(UA);
+const browserName = isSafari ? "Safari" : /Edg\//.test(UA) ? "Edge" : /Firefox/.test(UA) ? "Firefox" : /Chrome\/(\d+)/.test(UA) ? "Chrome " + UA.match(/Chrome\/(\d+)/)[1] : "Unknown browser";
+const FIX_CMD = `launchctl setenv OLLAMA_ORIGINS "*"; osascript -e 'quit app "Ollama"'; sleep 2; open -a Ollama; sleep 4; ollama list | tail -n +2 | grep -q . || ollama pull llama3.2`;
+function showSetup(why) {
+  hideSetup();
+  const d = document.createElement("div"); d.className = "setup";
+  const safariFile = isSafari && location.protocol === "file:" && why !== "nomodel";
+  const head = safariFile
+    ? `<h3>Safari is blocking Nour</h3><p>Safari doesn't let a page opened from a file talk to Ollama. Open Nour in <b>Google Chrome</b> instead (free at <code>google.com/chrome</code>):</p>
+       <ol><li>In Finder, right-click <b>Nour.html</b> → <b>Get Info</b>.</li><li>Under <b>Open with</b>, pick <b>Google Chrome</b>, then click <b>Change All…</b></li><li>Open Nour.html again. Your shortcut will now open in Chrome.</li></ol>
+       <p>Then, if Chrome shows a box here too, follow the steps in it.</p>`
+    : why === "blocked"
+    ? `<h3>Ollama is running, but it's blocking Nour</h3><p>One command fixes it. If you restart your Mac and this box comes back, run it again.</p>`
+    : why === "nomodel"
+    ? `<h3>Ollama is running, but has no AI model yet</h3><p>One command downloads a model (about 2 GB).</p>`
+    : `<h3>Give Nour a brain (one time)</h3><p>Nour's brain is Ollama, a free app that runs the AI on your Mac. If you don't have it yet, install it from <code>ollama.com/download</code> and open it.</p>`;
+  d.innerHTML = head + `
+    <ol>
+      <li>Open the <b>Terminal</b> app (press ⌘ Space, type Terminal, press Enter).</li>
+      <li>Click <b>Copy command</b> below, paste it into Terminal (⌘ V) and press Enter.</li>
+      <li>Wait. Nour connects by itself; this box disappears when it's ready.</li>
+    </ol>
+    <code id="fixCmd" style="display:block;padding:10px;user-select:all">${FIX_CMD.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</code>
+    <div class="row"><button class="btn primary" type="button" id="copyFix">Copy command</button><button class="btn" type="button" id="setupCheck">Check again</button></div>
+    ${["available", "downloadable", "downloading"].includes(diag.chromeAI) ? `<div class="opt">
+      <strong>Free, no Terminal: Chrome's built-in AI</strong>
+      <p>Your Chrome has a small AI built in. It's less clever than Ollama's models but needs no setup${diag.chromeAI === "available" ? "" : " (Chrome downloads it once, a few GB)"}.</p>
+      <div class="row"><button class="btn primary" type="button" id="useChromeAI">Use Chrome's built-in AI</button><span id="chromeAIProgress" style="color:var(--dim);font-size:13px;align-self:center"></span></div>
+    </div>` : ""}
+    <div class="opt">
+      <strong>No Ollama? Use a Claude API key instead</strong>
+      <p>Get one at <code>platform.claude.com</code> (pay per use, a few cents at most per message) and paste it:</p>
+      <div class="row"><input id="keyIn" type="password" placeholder="sk-ant-…" style="flex:1;min-width:0;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink)"><button class="btn" type="button" id="keySave">Use this key</button></div>
+    </div>`;
+  const dg = document.createElement("p");
+  dg.style.cssText = "font-family:var(--mono);font-size:11px;border-top:1px solid var(--line);padding-top:8px";
+  dg.textContent = `Diagnosis · ${browserName} · opened from ${location.protocol === "file:" ? "a file" : location.host} · Ollama at ${cfg.ollamaUrl}: ${diag.ollama}${diag.err ? " (" + diag.err + ")" : ""} · Chrome AI: ${diag.chromeAI} · ${new Date().toLocaleTimeString()}`;
+  d.append(dg);
+  log.appendChild(d); setupCard = d; log.scrollTop = log.scrollHeight;
+  if ($("app").classList.contains("solo")) $("toggleChat").click();
+  const cb = d.querySelector("#useChromeAI");
+  if (cb) cb.onclick = async () => {
+    const pr = d.querySelector("#chromeAIProgress");
+    cb.disabled = true; pr.textContent = "Preparing…";
+    try {
+      const sess = await LanguageModel.create({ monitor(m) { m.addEventListener("downloadprogress", e => { pr.textContent = "Downloading " + Math.round((e.loaded || 0) * 100) + "%… keep this page open"; }); } });
+      sess.destroy?.();
+      cfg.brain = "chrome"; saveCfg(); fillSettings(); await detectBrain();
+    } catch (e) { pr.textContent = "Chrome couldn't set it up: " + (e.message || e); cb.disabled = false; }
+  };
+  d.querySelector("#copyFix").onclick = async () => {
+    const b = d.querySelector("#copyFix");
+    try { await navigator.clipboard.writeText(FIX_CMD); b.textContent = "Copied ✓"; }
+    catch { const r = document.createRange(); r.selectNodeContents(d.querySelector("#fixCmd")); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = "Press ⌘ C to copy"; }
+  };
+  d.querySelector("#setupCheck").onclick = () => detectBrain();
+  d.querySelector("#keySave").onclick = () => {
+    const k = d.querySelector("#keyIn").value.trim();
+    if (!/^sk-ant-/.test(k)) { d.querySelector("#keyIn").focus(); return; }
+    cfg.apiKey = k; if (cfg.brain === "ollama") cfg.brain = "auto"; saveCfg(); fillSettings(); detectBrain();
+  };
+  clearInterval(autoCheck);
+  autoCheck = setInterval(async () => { if (!brain && document.visibilityState === "visible") await detectBrain(true); if (brain) clearInterval(autoCheck); }, 5000);
+}
+function hideSetup() { setupCard?.remove(); setupCard = null; }
+
+/* Each brain streams text through onText(fullTextSoFar). */
+async function runOllama(turns, images, onText, signal) {
+  const msgs = [{ role: "system", content: systemPrompt() }, ...turns.map((m, i) => {
+    const o = { role: m.role, content: m.content };
+    if (i === turns.length - 1 && images.length) o.images = images.map(a => a.b64);
+    return o;
+  })];
+  const r = await fetch(cfg.ollamaUrl.replace(/\/$/, "") + "/api/chat", {
+    method: "POST", signal, headers: { "content-type": "application/json" },
+    body: JSON.stringify({ model: cfg.ollamaModel, messages: msgs, stream: true, think: false, keep_alive: "30m", options: { num_predict: smart ? 1200 : 450 } }),
+  });
+  if (!r.ok) throw new Error(r.status === 404 ? `Model "${cfg.ollamaModel}" isn't installed. Run: ollama pull ${cfg.ollamaModel}` : `Ollama error ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", text = "";
+  for (;;) {
+    const { done, value } = await rd.read(); if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n"); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const j = JSON.parse(line);
+      if (j.error) throw new Error(j.error);
+      if (j.message?.content) { text += j.message.content; onText(text); }
+    }
+  }
+  return text;
+}
+async function runClaude(turns, images, onText, signal) {
+  const messages = turns.map((m, i) => {
+    if (i === turns.length - 1 && images.length) return { role: "user", content: [...images.map(a => ({ type: "image", source: { type: "base64", media_type: a.type, data: a.b64 } })), { type: "text", text: m.content }] };
+    return { role: m.role, content: m.content };
+  });
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", signal,
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": cfg.apiKey.trim(),
+      "anthropic-version": "2026-10-21",
+      "anthropic-beta": "server-side-fallback-2026-07-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: cfg.claudeModel || "claude-opus-5-5",
+      max_tokens: 16000,
+      system: systemPrompt(),
+      messages,
+      stream: true,
+      output_config: { effort: smart ? "high" : "low" },
+      fallbacks: "default",
+    }),
+  });
+  if (!r.ok) {
+    let msg = `Claude API error ${r.status}`;
+    try { const j = await r.json(); msg += ": " + (j.error?.message || ""); } catch {}
+    if (r.status === 401) msg = "That Claude API key was refused. Check it in Settings.";
+    if (r.status === 429) msg = "Claude is busy or your usage limit was reached. Try again in a moment.";
+    throw new Error(msg);
+  }
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", text = "", refused = false;
+  for (;;) {
+    const { done, value } = await rd.read(); if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n"); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith("data:")) continue;
+      let j; try { j = JSON.parse(line.slice(5)); } catch { continue; }
+      if (j.type === "content_block_delta" && j.delta?.type === "text_delta") { text += j.delta.text; onText(text); }
+      else if (j.type === "message_delta" && j.delta?.stop_reason === "refusal") refused = true;
+      else if (j.type === "error") throw new Error(j.error?.message || "Claude stream error");
+    }
+  }
+  if (refused && !text.trim()) text = "I'm afraid I can't help with that one, sir.";
+  return text;
+}
+let chromeSession = null, chromeKey = "";
+async function runChrome(turns, images, onText, signal) {
+  const key = systemPrompt();
+  if (!chromeSession || chromeKey !== key) {
+    chromeSession?.destroy?.();
+    chromeSession = await LanguageModel.create({ initialPrompts: [{ role: "system", content: key }, ...turns.slice(0, -1).map(m => ({ role: m.role, content: m.content }))] });
+    chromeKey = key;
+  }
+  const stream = chromeSession.promptStreaming(turns.at(-1).content, { signal });
+  let text = "";
+  for await (const chunk of stream) { text = chunk.startsWith(text) && text ? chunk : text + chunk; onText(text); }
+  return text;
+}
+
+/* =====================  ASK  ===================== */
+async function ask(raw) {
+  let text = (raw || "").trim();
+  if (busy) return;
+  const files = attachments;
+  if (!text && !files.length) return;
+  if (!text) text = MODES[mode].ask;
+  const SLASH = {
+    explain: "Explain this simply, step by step, with one concrete example: ",
+    quiz: "Give me a 5-question quiz, one question at a time, and wait for my answer before the next one. Topic: ",
+    flashcards: "Make 8 flashcards (front: question, back: answer), one per line as 'Q: … — A: …'. Topic: ",
+    summarize: "Summarize the key points in 5 short spoken sentences: ",
+    plan: "Make a realistic day-by-day revision plan: ",
+  };
+  const sm = text.match(/^\/(explain|quiz|flashcards|summarize|plan)\b\s*/i);
+  const promptText = sm ? SLASH[sm[1].toLowerCase()] + text.slice(sm[0].length) : text;
+  if (!brain) { await detectBrain(); if (!brain) { note("Nour needs a brain first. Follow the steps in the box below."); return; } }
+  attachments = []; renderTray(); q.value = ""; autosize();
+  const images = files.filter(a => a.kind === "image"), docs = files.filter(a => a.kind === "text");
+  if (images.length && brain.kind === "chrome") note("Chrome's built-in AI can't see photos; sending the text only.");
+  const you = bubble("you", ""); cap(text, "you");
+  if (images.length) { const p = document.createElement("div"); p.className = "pics"; for (const a of images) { const im = new Image(); im.src = a.url; im.alt = "Your photo"; p.append(im); } you.append(p); }
+  you.append(document.createTextNode(text));
+  for (const d of docs) { const n = document.createElement("span"); n.className = "note"; n.textContent = "📄 " + d.name; you.append(n); }
+  const stored = text + (files.length ? `\n(attached: ${files.map(f => f.kind === "image" ? "photo" : f.name).join(", ")})` : "");
+  history.push({ role: "user", text: stored }); save();
+  const content = promptText + docs.map(d => `\n\n[File: ${d.name}]\n${d.text}`).join("") + (images.length ? `\n(The user attached ${images.length} photo${images.length > 1 ? "s" : ""}.)` : "");
+  const turns = history.slice(-10).map((m, i, arr) => ({ role: m.role, content: i === arr.length - 1 ? content : m.text }));
+  while (turns.length && turns[0].role !== "user") turns.shift();
+
+  busy = true; stopVoice(); setMood("thinking"); status(smart ? "Thinking deeply" : "Thinking", true);
+  const out = bubble("ai", "…");
+  let spokenUpTo = 0;
+  const speakNew = (full, final) => {
+    if (!cfg.speak) return;
+    const v = visible(full), rest = v.slice(spokenUpTo);
+    const m = final ? (rest.trim() ? [rest] : null) : rest.match(/^[\s\S]*?[.!?…。？！:\n](?=\s|$)/);
+    if (m && (final || m[0].trim().length > 8)) { say(m[0]); spokenUpTo += m[0].length; if (!final) speakNew(full, false); }
+  };
+  ctl = new AbortController();
+  try {
+    const run = brain.kind === "ollama" ? runOllama : brain.kind === "claude" ? runClaude : runChrome;
+    const reply = await run(turns, images, full => { out.textContent = visible(full) || "…"; cap(visible(full), "nour"); log.scrollTop = log.scrollHeight; speakNew(full, false); }, ctl.signal);
+    const clean = visible(reply) || "(no answer)";
+    out.textContent = clean;
+    speakNew(reply, true);
+    const notes = [];
+    for (const [, kind, val] of reply.matchAll(TAG)) {
+      if (kind.toLowerCase() === "remember" && remember(val)) notes.push("Noted: " + val);
+      if (kind.toLowerCase() === "forget" && forget(val)) notes.push("Forgotten: " + val);
+    }
+    if (notes.length) { saveFacts(); for (const n of notes) { const s = document.createElement("span"); s.className = "mem"; s.textContent = "◆ " + n; out.append(s); } }
+    history.push({ role: "assistant", text: clean }); save();
+  } catch (e) {
+    if (e.name === "AbortError") out.textContent = out.textContent === "…" ? "(stopped)" : out.textContent;
+    else {
+      out.classList.add("err");
+      out.textContent = (e.message || "Something went wrong.") + (brain.kind === "ollama" && /fetch/i.test(e.message) ? " Is Ollama still running?" : "");
+      history.pop(); save();
+    }
+  } finally {
+    busy = false; ctl = null;
+    if (!synth || !(synth.speaking || synth.pending)) { resumeEars(); rest(); }
+  }
+}
+$("bar").addEventListener("submit", e => { e.preventDefault(); unlockVoice(); if (busy) { ctl?.abort(); return; } ask(q.value); });
+q.addEventListener("keydown", e => { unlockVoice(); if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(q.value); } });
+q.addEventListener("input", autosize);
+
+/* =====================  SETTINGS  ===================== */
+function fillSettings() {
+  $("brainSel").value = cfg.brain; $("ollamaUrl").value = cfg.ollamaUrl; $("apiKey").value = cfg.apiKey;
+  $("claudeModel").value = cfg.claudeModel; $("rate").value = cfg.rate; $("voiceSel").value = cfg.voice; $("hearLang").value = cfg.hearLang;
+  renderOllamaModels();
+}
+$("openSettings").onclick = () => { fillSettings(); confirmForget = false; $("forgetAll").textContent = "Forget everything"; $("sheet").hidden = false; };
+$("closeSettings").onclick = () => { $("sheet").hidden = true; detectBrain(); };
+$("sheet").addEventListener("click", e => { if (e.target.id === "sheet") $("closeSettings").click(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("sheet").hidden) $("closeSettings").click(); });
+$("brainSel").onchange = e => { cfg.brain = e.target.value; saveCfg(); detectBrain(); };
+$("ollamaUrl").onchange = e => { cfg.ollamaUrl = e.target.value.trim() || "http://localhost:11434"; saveCfg(); detectBrain(); };
+$("ollamaModel").onchange = e => { cfg.ollamaModel = e.target.value; saveCfg(); detectBrain(); };
+$("apiKey").onchange = e => { cfg.apiKey = e.target.value.trim(); saveCfg(); detectBrain(); };
+$("claudeModel").onchange = e => { cfg.claudeModel = e.target.value.trim() || "claude-opus-5-5"; saveCfg(); };
+$("recheck").onclick = () => detectBrain();
+
+/* ===== Nour AI additions: caption + "^" menu ===== */
+function cap(text, who) {
+  const el = $("caption"); if (!el) return;
+  const t = (text || "").trim();
+  el.textContent = t ? (who === "you" ? "“" + (t.length > 200 ? "…" + t.slice(-200) : t) + "”" : (t.length > 260 ? "…" + t.slice(-260) : t)) : "";
+  el.classList.toggle("you", who === "you");
+}
+function closeMenu() { $("menu").hidden = true; $("menuBtn").setAttribute("aria-expanded", "false"); $("menuBtn").setAttribute("aria-label", "Open menu"); }
+$("menuBtn").onclick = e => { e.stopPropagation(); const open = $("menu").hidden; $("menu").hidden = !open; $("menuBtn").setAttribute("aria-expanded", String(open)); $("menuBtn").setAttribute("aria-label", open ? "Close menu" : "Open menu"); };
+$("menu").addEventListener("click", e => e.stopPropagation());
+document.addEventListener("click", () => { if (!$("menu").hidden) closeMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("menu").hidden) closeMenu(); });
+$("mChat").onclick = () => { closeMenu(); if ($("app").classList.contains("solo")) $("toggleChat").click(); setTimeout(() => q.focus(), 50); };
+$("mNew").onclick = () => { closeMenu(); $("clearChat").click(); cap("", "nour"); };
+$("openSettings").addEventListener("click", closeMenu);
+
+/* =====================  START  ===================== */
+renderHistory(); renderMode(); renderSpeed(); renderFacts(); renderSpeaker(); renderHands(); fillSettings();
+status("Starting…");
+detectBrain();
+</script>
+</body>
+</html>
