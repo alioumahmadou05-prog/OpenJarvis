@@ -18,6 +18,7 @@ import {
   ScrollText,
   Database,
   Orbit,
+  Sparkles,
 } from 'lucide-react';
 import { ConversationList } from './ConversationList';
 import { useAppStore } from '../../lib/store';
@@ -55,6 +56,7 @@ export function Sidebar() {
 
   const navItems = [
     { path: '/', icon: MessageSquare, label: 'Chat' },
+    { path: '/jarvis', icon: Sparkles, label: 'NxxR JARVIS' },
     { path: '/nour', icon: Orbit, label: 'Nour' },
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/data-sources', icon: Database, label: 'Data Sources' },

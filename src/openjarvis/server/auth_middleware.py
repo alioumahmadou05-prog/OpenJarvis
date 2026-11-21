@@ -85,6 +85,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         endpoints. This only applies when an API key is configured at all, so
         keyless local use is unchanged.
         """
+        # The NxxR website bridge runs inside the user's own sites, which cannot
+        # carry the server key; ingest is authenticated by a per-site secret.
+        if path in ("/v1/nxxr/bridge.js", "/v1/nxxr/sites/ingest"):
+            return False
         return (
             path.startswith("/v1/")
             or path.startswith("/api/")

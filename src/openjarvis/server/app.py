@@ -482,6 +482,31 @@ def create_app(
     app.include_router(upload_router)
     app.include_router(research_router)
     app.include_router(analytics_router)
+
+    # NxxR JARVIS personal-assistant layer (history, memory, reminders, sites,
+    # jobs, notifications). Set OPENJARVIS_NXXR=0 to disable.
+    if os.environ.get("OPENJARVIS_NXXR", "1") != "0":
+        try:
+            from openjarvis.core.paths import get_data_dir
+            from openjarvis.nxxr.router import create_nxxr_router
+            from openjarvis.nxxr.sites import SecretStore
+            from openjarvis.nxxr.store import NxxrStore
+
+            _nx_store = NxxrStore(get_data_dir() / "nxxr.db")
+            _nx_secrets = SecretStore(get_data_dir() / "nxxr-secrets.json")
+            _nx_router, _nx_scheduler, _ = create_nxxr_router(_nx_store, _nx_secrets)
+            app.include_router(_nx_router)
+            app.state.nxxr_store = _nx_store
+
+            @app.on_event("startup")
+            async def _start_nxxr_scheduler() -> None:
+                _nx_scheduler.start()
+
+            @app.on_event("shutdown")
+            async def _stop_nxxr_scheduler() -> None:
+                _nx_scheduler.stop()
+        except Exception as exc:
+            logger.warning("NxxR JARVIS layer disabled: %s", exc)
     include_all_routes(app)
 
     # Restore SendBlue channel bindings from database on startup

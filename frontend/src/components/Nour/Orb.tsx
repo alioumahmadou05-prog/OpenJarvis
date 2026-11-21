@@ -19,7 +19,7 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 interface Strand { u: Vec; v: Vec; k: number; amp: number; ph: number; spd: number; drift: number; hue: number; w: number }
 
-function makeStrands(n: number): Strand[] {
+function makeStrands(n: number, hue: [number, number]): Strand[] {
   return Array.from({ length: n }, (_, i) => {
     const th = rnd(0, Math.PI * 2);
     const ph = Math.acos(rnd(-1, 1));
@@ -28,13 +28,19 @@ function makeStrands(n: number): Strand[] {
     const u = norm(cross(nrm, a));
     return {
       u, v: cross(nrm, u), k: 2 + (i % 4), amp: rnd(0.01, 0.045), ph: rnd(0, 6.28),
-      spd: rnd(0.4, 1.3), drift: rnd(-0.25, 0.25), hue: rnd(262, 300), w: rnd(0.6, 1.4),
+      spd: rnd(0.4, 1.3), drift: rnd(-0.25, 0.25), hue: rnd(hue[0], hue[1]), w: rnd(0.6, 1.4),
     };
   });
 }
 
 /** A plasma sphere of light strands that reacts to the assistant's state. */
-export function Orb({ mood, className }: { mood: OrbMood; className?: string }) {
+const PALETTES = {
+  violet: { hue: [262, 300] as [number, number], halo: '150,90,255', core: '90,60,230', edge: '120,40,200' },
+  blue: { hue: [198, 222] as [number, number], halo: '40,130,255', core: '60,170,255', edge: '20,90,220' },
+};
+
+export function Orb({ mood, className, palette = 'violet' }: { mood: OrbMood; className?: string; palette?: keyof typeof PALETTES }) {
+  const P = PALETTES[palette];
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const moodRef = useRef(mood);
   moodRef.current = mood;
@@ -45,7 +51,7 @@ export function Orb({ mood, className }: { mood: OrbMood; className?: string }) 
     const cx = cv.getContext('2d');
     if (!cx) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const strands = makeStrands(13);
+    const strands = makeStrands(13, P.hue);
     let dpr = 1;
     const size = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -74,14 +80,14 @@ export function Orb({ mood, className }: { mood: OrbMood; className?: string }) 
       cx.globalCompositeOperation = 'lighter';
 
       let g = cx.createRadialGradient(c, c, R * 0.7, c, c, R * 1.62);
-      g.addColorStop(0, `rgba(150,90,255,${0.1 + 0.12 * energy})`);
+      g.addColorStop(0, `rgba(${P.halo},${0.1 + 0.12 * energy})`);
       g.addColorStop(1, 'rgba(80,30,160,0)');
       cx.fillStyle = g;
       cx.fillRect(0, 0, S, S);
       const nx = c + Math.cos(t * 0.5) * R * 0.25, ny = c + Math.sin(t * 0.37) * R * 0.2;
       g = cx.createRadialGradient(nx, ny, 0, nx, ny, R * 0.95);
-      g.addColorStop(0, `rgba(90,60,230,${0.22 + 0.18 * energy})`);
-      g.addColorStop(0.6, 'rgba(120,40,200,0.08)');
+      g.addColorStop(0, `rgba(${P.core},${0.22 + 0.18 * energy})`);
+      g.addColorStop(0.6, `rgba(${P.edge},0.08)`);
       g.addColorStop(1, 'rgba(0,0,0,0)');
       cx.fillStyle = g;
       cx.fillRect(0, 0, S, S);
@@ -128,7 +134,7 @@ export function Orb({ mood, className }: { mood: OrbMood; className?: string }) 
       cancelAnimationFrame(raf);
       clearTimeout(raf);
     };
-  }, []);
+  }, [P]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" style={{ width: '100%', height: '100%', display: 'block' }} />;
 }

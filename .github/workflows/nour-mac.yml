@@ -1,4 +1,4 @@
-name: Build Nx Ai for Mac
+name: Build NxxR JARVIS for Mac
 
 # Builds the Nour voice assistant ("Nx Ai") as a Mac app and publishes it on
 # the "nour-latest" release page, so it can be installed from a Download link.
@@ -56,12 +56,12 @@ jobs:
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
           const config = {
-            productName: 'Nx Ai',
+            productName: 'NxxR JARVIS',
             version: `1.0.${process.env.RUN_NUMBER}`,
             identifier: 'ai.nx.nour',
             app: {
               windows: [{
-                title: 'Nx Ai', width: 1100, height: 820, minWidth: 420, minHeight: 600,
+                title: 'NxxR JARVIS', width: 1280, height: 820, minWidth: 420, minHeight: 600,
                 resizable: true, fullscreen: false, decorations: true, transparent: false,
               }],
             },
@@ -72,7 +72,7 @@ jobs:
                 'icons-nour/32x32.png', 'icons-nour/128x128.png', 'icons-nour/128x128@2x.png',
                 'icons-nour/icon.icns', 'icons-nour/icon.png',
               ],
-              shortDescription: 'Nour, your sarcastic AI voice assistant',
+              shortDescription: 'NxxR JARVIS, your personal AI assistant',
             },
             plugins: {
               // Never "update" this app into plain OpenJarvis.
@@ -85,7 +85,7 @@ jobs:
       - name: Build the Mac app (Apple Silicon + Intel)
         working-directory: frontend
         env:
-          VITE_START_PAGE: nour
+          VITE_START_PAGE: jarvis
           VITE_OPENJARVIS_NO_UPDATER: '1'
           # First launch downloads the assistant's engine from this fork and branch.
           OPENJARVIS_REPO_URL: https://github.com/${{ github.repository }}.git

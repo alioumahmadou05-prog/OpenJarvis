@@ -311,6 +311,10 @@ select = ["E", "F", "I", "W"]
 # research_loop.py carries long prompt strings too (documented in CLAUDE.md);
 # the ignore was missing here.
 "src/openjarvis/agents/research_loop.py" = ["E501"]
+# NxxR JARVIS: persona/research prompts and the embedded browser bridge script.
+"src/openjarvis/nxxr/persona.py" = ["E501"]
+"src/openjarvis/nxxr/services.py" = ["E501"]
+"src/openjarvis/nxxr/sites.py" = ["E501"]
 
 [dependency-groups]
 dev = [
