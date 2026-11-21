@@ -1,0 +1,14 @@
+NOUR AI — how to install (one time)
+
+1. Right-click "Install Nour AI.command" → Open → Open.
+   (Right-click is needed once because this installer isn't from the App Store.)
+2. A Terminal window installs everything (about 5–10 minutes the first time).
+3. When it says "Nour AI is installed", Nour opens by itself.
+
+After that: open "Nour AI" from your Applications folder (Home → Applications),
+or drag it to your Dock. Tap the Nour logo and talk. Chrome gives the best voice.
+
+Smarter answers: in Nour, open the ^ menu → Connected apps / Settings, or pick a bigger model
+such as qwen3.5:9b in the classic OpenJarvis page (http://127.0.0.1:8000/). Ollama runs it on your Mac.
+
+To update Nour AI later, run the installer again.

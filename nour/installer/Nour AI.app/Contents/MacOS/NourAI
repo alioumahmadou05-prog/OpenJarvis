@@ -1,0 +1,37 @@
+#!/bin/bash
+# Nour AI launcher: starts Ollama and the Nour server if needed, then opens Nour in its own window.
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+OJ="${OPENJARVIS_HOME:-$HOME/.openjarvis}"
+URL="http://127.0.0.1:8000/jarvis"
+LOG="$OJ/nour-ai.log"
+say_error() { osascript -e "display dialog \"$1\" with title \"Nour AI\" buttons {\"OK\"} default button 1 with icon caution" >/dev/null 2>&1; }
+
+if [ ! -x "$OJ/.venv/bin/jarvis" ]; then
+  say_error "Nour AI isn't installed yet. Double-click 'Install Nour AI.command' first."
+  exit 1
+fi
+# 1. The brain: Ollama
+if ! curl -s -m 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+  open -a Ollama >/dev/null 2>&1 || (command -v ollama >/dev/null && nohup ollama serve >>"$LOG" 2>&1 &)
+  for i in $(seq 1 20); do curl -s -m 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break; sleep 1; done
+fi
+# 2. Nour's server (reminders and alerts keep running while it's on)
+if ! curl -s -m 2 http://127.0.0.1:8000/health >/dev/null 2>&1; then
+  nohup "$OJ/.venv/bin/jarvis" serve --host 127.0.0.1 --port 8000 >>"$LOG" 2>&1 &
+  ok=0
+  for i in $(seq 1 90); do
+    if curl -s -m 1 http://127.0.0.1:8000/health >/dev/null 2>&1; then ok=1; break; fi
+    sleep 1
+  done
+  if [ "$ok" != 1 ]; then
+    say_error "Nour's server didn't start. Details are in ~/.openjarvis/nour-ai.log"
+    open -e "$LOG" 2>/dev/null
+    exit 1
+  fi
+fi
+# 3. Open Nour in its own window (Chrome gives the best voice); otherwise the default browser
+if [ -d "/Applications/Google Chrome.app" ] || [ -d "$HOME/Applications/Google Chrome.app" ]; then
+  open -na "Google Chrome" --args --app="$URL" --window-size=1100,820
+else
+  open "$URL"
+fi
