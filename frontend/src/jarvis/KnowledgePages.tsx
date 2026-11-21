@@ -78,7 +78,7 @@ export function MemoryPage() {
   };
   return (
     <>
-      <PageTitle eyebrow="Memory" title="What JARVIS knows about you" sub="I only keep lasting, useful facts (studies, projects, goals, preferences, deadlines). Correct or delete anything; it's your memory.">
+      <PageTitle eyebrow="Memory" title="What Nour knows about you" sub="I only keep lasting, useful facts (studies, projects, goals, preferences, deadlines). Correct or delete anything; it's your memory.">
         <Btn onClick={() => void exportData()}>Export all my data</Btn>
         <Btn variant="danger" onClick={() => { if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 4000); return; } void nx.clearMemories().then(load); setArmed(false); }}>{armed ? 'Click again to erase all' : 'Forget everything'}</Btn>
       </PageTitle>
@@ -124,7 +124,7 @@ export function ResearchPage() {
   const start = async (kind: string, input: string) => { setError(null); try { await nx.startJob(kind, input); setTopic(''); load(); } catch (e) { setError((e as Error).message); } };
   return (
     <>
-      <PageTitle eyebrow="Web research" title="Send JARVIS to find out" sub="Multi-step research in the background: search several angles, read the articles, compare them and write a cited report. You'll get a notification when it's done." />
+      <PageTitle eyebrow="Web research" title="Send Nour to find out" sub="Multi-step research in the background: search several angles, read the articles, compare them and write a cited report. You'll get a notification when it's done." />
       <Card>
         <form className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end" onSubmit={e => { e.preventDefault(); if (topic.trim()) void start('research', topic); }}>
           <Field label="Research topic"><Input value={topic} onChange={e => setTopic(e.target.value)} placeholder="Latest developments in chemical engineering this month" /></Field>

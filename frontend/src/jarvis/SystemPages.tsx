@@ -4,7 +4,7 @@ import { Copy, RefreshCw, Trash2 } from 'lucide-react';
 import { getBase } from '../lib/api';
 import { listConnectors } from '../lib/connectors-api';
 import type { ConnectorInfo } from '../types/connectors';
-import { nx, ago, type Settings, type Site, type SiteEvent } from './api';
+import { nx, ago, MODE_LIST, type Settings, type Site, type SiteEvent } from './api';
 import { browserCanListen, browserCanSpeak, type VoiceSettings } from './voice';
 import { getEngine, loadVoiceSettings, saveVoiceSettings } from './useVoice';
 import { Btn, Card, Empty, ErrorText, Field, Input, PageTitle, Pill, Select, statusTone } from './ui';
@@ -27,7 +27,7 @@ export function SitesPage() {
   };
   return (
     <>
-      <PageTitle eyebrow="My websites" title="Your projects, watched" sub="JARVIS checks each site on a schedule, reads authorised pages, and (with the bridge snippet) sees the errors and events happening inside your apps.">
+      <PageTitle eyebrow="My websites" title="Your projects, watched" sub="Nour checks each site on a schedule, reads authorised pages, and (with the bridge snippet) sees the errors and events happening inside your apps.">
         <Btn onClick={() => void nx.startJob('site_audit').then(() => navigate('/jarvis/research'))} disabled={!sites.length}>Audit all sites</Btn>
         <Btn variant="primary" onClick={() => setAdding(a => !a)}>{adding ? 'Close' : 'Add website'}</Btn>
       </PageTitle>
@@ -47,7 +47,7 @@ export function SitesPage() {
             <label className="flex items-center gap-2 opacity-60" title="No site actions are executed automatically in this version"><input type="checkbox" checked={form.perm_execute} onChange={e => setForm({ ...form, perm_execute: e.target.checked })} /> Execute: perform actions (always asks first)</label>
           </div>
           <div className="mt-3 flex gap-2"><Btn variant="primary" disabled={!form.url} onClick={() => void add()}>Register & check</Btn></div>
-          <p className="nx-dim mb-0 text-xs">A local HTML file has no address JARVIS can check. Serve it (for example with VS Code Live Server, or <code>python3 -m http.server</code> in its folder) and register that http://localhost address, then add the bridge snippet.</p>
+          <p className="nx-dim mb-0 text-xs">A local HTML file has no address Nour can check. Serve it (for example with VS Code Live Server, or <code>python3 -m http.server</code> in its folder) and register that http://localhost address, then add the bridge snippet.</p>
           <ErrorText error={error} />
         </Card>
       )}
@@ -91,7 +91,7 @@ function SiteDetail({ site, onChange, onDeleted }: { site: Site; onChange: () =>
         <div className="flex flex-wrap gap-2">
           <Btn variant="sm" disabled={!!busy} onClick={() => void run('check', async () => { await nx.checkSite(site.id); onChange(); })}><RefreshCw size={13} className="mr-1 inline" />{busy === 'check' ? 'Checking…' : 'Check now'}</Btn>
           <Btn variant="sm" disabled={!!busy || !site.perm_read} onClick={() => void run('snap', async () => setSnap(await nx.snapshot(site.id)))}>{busy === 'snap' ? 'Reading…' : 'Read structure'}</Btn>
-          <Btn variant="sm" onClick={() => navigate(`/jarvis?mode=professional&ask=${encodeURIComponent(`Look at my website "${site.name}" (${site.url}). Status: ${site.status}, ${site.last_error || 'no error'}. Recent errors: ${events.filter(e => e.level === 'error').slice(0, 5).map(e => e.message).join(' | ') || 'none'}. Explain what's happening and how to improve it.`)}`)}>Ask JARVIS about it</Btn>
+          <Btn variant="sm" onClick={() => navigate(`/jarvis?mode=professional&ask=${encodeURIComponent(`Look at my website "${site.name}" (${site.url}). Status: ${site.status}, ${site.last_error || 'no error'}. Recent errors: ${events.filter(e => e.level === 'error').slice(0, 5).map(e => e.message).join(' | ') || 'none'}. Explain what's happening and how to improve it.`)}`)}>Ask Nour about it</Btn>
           <Btn variant="sm danger" onClick={() => { if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 3000); return; } void nx.deleteSite(site.id).then(onDeleted); }}><Trash2 size={13} className="mr-1 inline" />{armed ? 'Click to remove' : 'Remove'}</Btn>
         </div>
         <ErrorText error={error} />
@@ -105,7 +105,7 @@ function SiteDetail({ site, onChange, onDeleted }: { site: Site; onChange: () =>
         )}
         <div>
           <div className="nx-eyebrow mb-1">Bridge snippet</div>
-          <p className="nx-dim mt-0 text-xs">Paste this before <code>&lt;/body&gt;</code> in your site's HTML. It reports JavaScript errors, failing requests and your own <code>NxxR.event("signup")</code> calls to your local JARVIS.</p>
+          <p className="nx-dim mt-0 text-xs">Paste this before <code>&lt;/body&gt;</code> in your site's HTML. It reports JavaScript errors, failing requests and your own <code>NxxR.event("signup")</code> calls to your local Nour.</p>
           <div className="flex gap-2"><code className="nx-mono min-w-0 flex-1 overflow-x-auto rounded-lg border p-2 text-[11px]" style={{ borderColor: 'var(--line)', background: 'var(--void)', whiteSpace: 'nowrap' }}>{snippet}</code><Btn variant="sm" onClick={() => void navigator.clipboard.writeText(snippet)}><Copy size={13} /></Btn></div>
         </div>
         <div>
@@ -129,7 +129,7 @@ export function AppsPage() {
   const sorted = [...list].sort((a, b) => (IMPORTANT.indexOf(a.connector_id) + 1 || 99) - (IMPORTANT.indexOf(b.connector_id) + 1 || 99));
   return (
     <>
-      <PageTitle eyebrow="Connected apps" title="Your digital world" sub="Connections use each service's official secure sign-in (OAuth) or local access. JARVIS reads and prepares; anything that sends, deletes or changes asks you first.">
+      <PageTitle eyebrow="Connected apps" title="Your digital world" sub="Connections use each service's official secure sign-in (OAuth) or local access. Nour reads and prepares; anything that sends, deletes or changes asks you first.">
         <Btn variant="primary" onClick={() => navigate('/data-sources')}>Connect or manage</Btn>
       </PageTitle>
       <ErrorText error={error} />
@@ -154,6 +154,7 @@ export function SettingsPage() {
   const [caps, setCaps] = useState<{ serverTts: boolean; serverStt: boolean } | null>(null);
   const [audit, setAudit] = useState<{ id: number; at: number; actor: string; action: string; detail: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState(() => localStorage.getItem('nx.mode') || 'companion');
   useEffect(() => {
     nx.settings().then(setS).catch(e => setError(e.message));
     nx.audit().then(r => setAudit(r.audit.slice(0, 40))).catch(() => {});
@@ -162,10 +163,10 @@ export function SettingsPage() {
   }, []);
   const saveV = (patch: Partial<VoiceSettings>) => { const n = { ...v, ...patch }; setV(n); saveVoiceSettings(n); };
   const save = async (patch: Partial<Settings>) => { try { setS(await nx.saveSettings(patch)); } catch (e) { setError((e as Error).message); } };
-  const test = () => { const e = getEngine(); e.stopSpeaking(); e.say("Good evening. JARVIS online, and as modest as ever."); };
+  const test = () => { const e = getEngine(); e.stopSpeaking(); e.say("Good evening. Nour online, and as modest as ever."); };
   return (
     <>
-      <PageTitle eyebrow="Settings" title="Tune JARVIS" sub="Everything is stored on your computer." />
+      <PageTitle eyebrow="Settings" title="Tune Nour" sub="Everything is stored on your computer." />
       <ErrorText error={error} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Voice">
@@ -177,7 +178,7 @@ export function SettingsPage() {
               <Field label={`Volume ${Math.round(v.volume * 100)}%`}><input type="range" min={0} max={1} step={0.05} value={v.volume} onChange={e => saveV({ volume: +e.target.value })} /></Field></div>
             <Field label="Language I speak (for browser speech recognition)"><Select value={v.lang} onChange={e => saveV({ lang: e.target.value })}>{[['en-GB', 'English (UK)'], ['en-US', 'English (US)'], ['en-NG', 'English (Nigeria) / Pidgin'], ['fr-FR', 'Français'], ['ar-SA', 'العربية'], ['ha-NG', 'Hausa'], ['es-ES', 'Español'], ['zh-CN', '中文'], ['ja-JP', '日本語'], ['de-DE', 'Deutsch'], ['pt-PT', 'Português'], ['it-IT', 'Italiano'], ['ru-RU', 'Русский']].map(([c, l]) => <option key={c} value={c}>{l}</option>)}</Select></Field>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.wake} onChange={e => saveV({ wake: e.target.checked })} /> Wake word: only answer after “Hey {v.wakeWord}” during a voice session</label>
-            {v.wake && <Field label="Wake word"><Input value={v.wakeWord} onChange={e => saveV({ wakeWord: e.target.value.toLowerCase().trim() || 'jarvis' })} /></Field>}
+            {v.wake && <Field label="Wake word"><Input value={v.wakeWord} onChange={e => saveV({ wakeWord: e.target.value.toLowerCase().trim() || 'nour' })} /></Field>}
             <div className="flex items-center gap-2"><Btn onClick={test}>Test voice</Btn></div>
             <p className="nx-dim m-0 text-xs">Listening uses {browserCanListen ? 'your browser\'s speech recognition (fast; one language at a time)' : caps?.serverStt ? 'the OpenJarvis speech server (detects your language automatically)' : 'nothing yet: use Chrome/Safari, or install OpenJarvis speech (uv sync --extra speech)'}.</p>
           </div>
@@ -185,6 +186,7 @@ export function SettingsPage() {
         <Card title="Personality & schedule">
           {s && (
             <div className="grid gap-3">
+              <Field label="Personality mode"><Select value={mode} onChange={e => { setMode(e.target.value); localStorage.setItem('nx.mode', e.target.value); }}>{MODE_LIST.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select></Field>
               <Field label={`Sarcasm and humor: ${['off', 'light', 'normal', 'maximum'][s.humor]}`}><input type="range" min={0} max={3} step={1} value={s.humor} onChange={e => void save({ humor: +e.target.value })} /></Field>
               <Field label="Time zone"><Input value={s.timezone || ''} placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone} onChange={e => setS({ ...s, timezone: e.target.value })} onBlur={e => e.target.value && void save({ timezone: e.target.value })} /></Field>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={s.desktop_notifications} onChange={e => void save({ desktop_notifications: e.target.checked })} /> Desktop notifications for reminders and alerts</label>
@@ -193,8 +195,8 @@ export function SettingsPage() {
           )}
         </Card>
         <Card title="Audit log" className="lg:col-span-2">
-          <p className="nx-dim mt-0 text-xs">Every action JARVIS or you took on your data: reminders, memories, drafts, website reads, deletions.</p>
-          {!audit.length ? <Empty>Nothing yet.</Empty> : <ul className="nx-scroll m-0 grid max-h-72 list-none gap-1 overflow-y-auto p-0 text-xs">{audit.map(a => <li key={a.id} className="nx-mono"><span className="nx-dim">{new Date(a.at * 1000).toLocaleString()}</span> · <span style={{ color: a.actor === 'jarvis' ? 'var(--cyan)' : 'var(--ink)' }}>{a.actor}</span> · {a.action} <span className="nx-dim">{a.detail.slice(0, 120)}</span></li>)}</ul>}
+          <p className="nx-dim mt-0 text-xs">Every action Nour or you took on your data: reminders, memories, drafts, website reads, deletions.</p>
+          {!audit.length ? <Empty>Nothing yet.</Empty> : <ul className="nx-scroll m-0 grid max-h-72 list-none gap-1 overflow-y-auto p-0 text-xs">{audit.map(a => <li key={a.id} className="nx-mono"><span className="nx-dim">{new Date(a.at * 1000).toLocaleString()}</span> · <span style={{ color: a.actor === 'jarvis' ? 'var(--cyan)' : 'var(--ink)' }}>{a.actor === 'jarvis' ? 'nour' : a.actor}</span> · {a.action} <span className="nx-dim">{a.detail.slice(0, 120)}</span></li>)}</ul>}
         </Card>
       </div>
     </>

@@ -1,12 +1,12 @@
 import { synthesizeSpeech, transcribeAudio, fetchTtsHealth, fetchSpeechHealth } from '../lib/api';
 
 /**
- * Voice engine for JARVIS.
+ * Voice engine for Nour.
  * - Ears: the browser's speech recognition when it exists (Chrome, Edge, Safari), otherwise the
  *   OpenJarvis speech-to-text server with a simple energy-based voice-activity detector.
  * - Mouth: OpenJarvis text-to-speech (Kokoro, macOS Daniel, cloud voices) when available,
  *   otherwise the browser's own voices. Sentences are queued so speech starts before the reply ends.
- * - Barge-in: speaking over JARVIS stops it.
+ * - Barge-in: speaking over Nour stops it.
  */
 
 export type VoiceState = 'off' | 'listening' | 'hearing' | 'thinking' | 'speaking';
@@ -16,7 +16,7 @@ const SR: any = (typeof window !== 'undefined') && ((window as any).SpeechRecogn
 export const browserCanListen = !!SR;
 export const browserCanSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
-export const DEFAULT_VOICE: VoiceSettings = { tts: 'auto', browserVoice: '', rate: 1, volume: 1, lang: navigator.language || 'en-GB', wake: false, wakeWord: 'jarvis' };
+export const DEFAULT_VOICE: VoiceSettings = { tts: 'auto', browserVoice: '', rate: 1, volume: 1, lang: navigator.language || 'en-GB', wake: false, wakeWord: 'nour' };
 
 function similar(a: string, b: string): number {
   const A = new Set(a.toLowerCase().split(/\W+/).filter(Boolean)), B = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
@@ -146,7 +146,8 @@ export class VoiceEngine {
     const t = text.trim();
     if (!t) return;
     if (this.settings.wake && !this.awake) {
-      const re = new RegExp(`\\b(hey\\s+|ok\\s+|dis\\s+)?${this.settings.wakeWord}\\b[\\s,.!?]*`, 'i');
+      const word = this.settings.wakeWord === 'nour' ? '(?:nour|noor|nur|noure)' : this.settings.wakeWord;
+      const re = new RegExp(`\\b(hey\\s+|ok\\s+|dis\\s+)?${word}\\b[\\s,.!?]*`, 'i');
       const m = t.match(re);
       if (!m) return;
       this.awake = true;
@@ -168,7 +169,7 @@ export class VoiceEngine {
         const tx = e.results[i][0].transcript;
         if (e.results[i].isFinal) fin += tx + ' '; else interim += tx;
       }
-      // Barge-in, ignoring JARVIS's own voice leaking into the microphone.
+      // Barge-in, ignoring Nour's own voice leaking into the microphone.
       if (this.speaking && interim.trim().length > 6 && similar(interim, this.speakingText) < 0.5) this.stopSpeaking();
       if (this.speaking && similar(fin + interim, this.speakingText) > 0.5) return;
       if (fin) this.buffer += fin;

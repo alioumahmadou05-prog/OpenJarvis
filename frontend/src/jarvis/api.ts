@@ -1,6 +1,6 @@
 import { apiFetch } from '../lib/api';
 
-/** Typed client for the NxxR JARVIS backend (/v1/nxxr). */
+/** Typed client for the Nour AI backend (/v1/nxxr). */
 
 export interface Conversation { id: string; title: string; mode: string; archived: number; created_at: number; updated_at: number }
 export interface Source { title: string; url: string; snippet?: string; date?: string }
@@ -22,6 +22,11 @@ export interface Status { server_time: number; internet: boolean | null; model: 
 export interface Settings { timezone: string | null; humor: number; desktop_notifications: boolean; briefing_enabled: boolean; briefing_time: string; briefing_topics: string[]; wake_word: string }
 export interface Context { system: string; sources: Source[]; used_web: boolean; web_ok: boolean; history: { role: string; content: string }[]; searched_at?: number }
 export interface Collected { connected: string[]; not_connected: string[]; errors: string[]; items: { source: string; title: string; author: string; time: number | null; url: string; snippet: string }[] }
+
+export const MODE_LIST: [string, string][] = [
+  ['companion', 'Sarcastic companion'], ['normal', 'Normal'], ['tutor', 'Academic tutor'], ['research', 'Research'],
+  ['social', 'Social & dating'], ['professional', 'Professional'], ['news', 'News briefing'],
+];
 
 export const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 

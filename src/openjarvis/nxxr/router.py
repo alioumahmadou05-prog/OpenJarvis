@@ -1,4 +1,4 @@
-"""FastAPI routes for NxxR JARVIS, mounted at /v1/nxxr."""
+"""FastAPI routes for Nour AI, mounted at /v1/nxxr."""
 
 from __future__ import annotations
 
@@ -224,7 +224,7 @@ def create_nxxr_router(
                     "technology news today",
                 ],
             ),
-            "wake_word": store.get_setting("wake_word", "jarvis"),
+            "wake_word": store.get_setting("wake_word", "nour"),
         }
 
     @router.put("/settings")
@@ -255,7 +255,7 @@ def create_nxxr_router(
                 [t.strip() for t in s.briefing_topics if t.strip()][:6],
             )
         if s.wake_word is not None:
-            store.set_setting("wake_word", s.wake_word.strip().lower()[:30] or "jarvis")
+            store.set_setting("wake_word", s.wake_word.strip().lower()[:30] or "nour")
         store.audit("user", "settings.update")
         return await get_settings()
 

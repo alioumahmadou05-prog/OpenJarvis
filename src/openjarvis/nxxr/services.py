@@ -78,7 +78,7 @@ def read_article(url: str, max_chars: int = 6000) -> str:
             url,
             timeout=12,
             follow_redirects=True,
-            headers={"User-Agent": "Mozilla/5.0 NxxR-JARVIS"},
+            headers={"User-Agent": "Mozilla/5.0 Nour-AI"},
         )
         if "html" not in r.headers.get("content-type", ""):
             return ""
@@ -575,7 +575,7 @@ class Scheduler:
         for r in self.store.due_reminders(now):
             self.store.notify("reminder", "Reminder", r["text"], link="#reminders")
             if self.store.get_setting("desktop_notifications", True):
-                desktop_notify("JARVIS reminder", r["text"])
+                desktop_notify("Nour reminder", r["text"])
             nxt = persona.next_due(r["due_at"], r["recurrence"], tz)
             while (
                 nxt is not None and nxt <= now
@@ -630,8 +630,8 @@ class Scheduler:
             self.store.notify(
                 "briefing",
                 "Good morning. Your briefing is ready.",
-                "Open JARVIS and ask: what's happening today?",
+                "Open Nour and ask: what's happening today?",
                 link="#briefing",
             )
             if self.store.get_setting("desktop_notifications", True):
-                desktop_notify("JARVIS", "Good morning. Your briefing is ready.")
+                desktop_notify("Nour", "Good morning. Your briefing is ready.")

@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
-import { NavLink, Route, Routes, useNavigate, useSearchParams } from 'react-router';
+import { NavLink, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router';
 import {
-  Bell, BookOpen, BrainCircuit, CalendarClock, Globe2, History, Home, Inbox, LayoutGrid, Mic, Newspaper, Plug, Settings as Cog, Sparkles, X,
+  Bell, BookOpen, BrainCircuit, CalendarClock, ChevronUp, Globe2, History, Inbox, Keyboard, LayoutGrid, Newspaper, Orbit, Plug, Settings as Cog, X,
 } from 'lucide-react';
 import { Orb, type OrbMood } from '../components/Nour/Orb';
 import { getBase, authHeaders } from '../lib/api';
-import { nx, ago, when, type Job, type Notice, type Reminder, type Site, type Status } from './api';
+import { nx, type Notice, type Status } from './api';
 import { ChatPanel } from './ChatPanel';
 import type { VoiceState } from './voice';
 import { useVoice } from './useVoice';
-import { Btn, Card, NX_CSS, Pill, statusTone } from './ui';
+import { NX_CSS } from './ui';
 import { BriefingPage, InboxPage, RemindersPage } from './PersonalPages';
 import { AcademicPage, HistoryPage, MemoryPage, ResearchPage } from './KnowledgePages';
 import { AppsPage, SettingsPage, SitesPage } from './SystemPages';
 
 const NAV = [
-  { to: '/jarvis', icon: Home, label: 'Home', end: true },
-  { to: '/jarvis/history', icon: History, label: 'Chat history' },
-  { to: '/jarvis/voice', icon: Mic, label: 'Voice' },
+  { to: '/jarvis', icon: Orbit, label: 'Talk to Nour', end: true },
+  { to: '/jarvis/history', icon: History, label: 'Chats' },
   { to: '/jarvis/briefing', icon: Newspaper, label: 'Daily briefing' },
   { to: '/jarvis/inbox', icon: Inbox, label: 'Email & calendar' },
   { to: '/jarvis/reminders', icon: CalendarClock, label: 'Reminders' },
@@ -29,14 +28,25 @@ const NAV = [
   { to: '/jarvis/settings', icon: Cog, label: 'Settings' },
 ];
 
+
+/**
+ * Nour AI is voice-first: launching shows only the Nour logo. Everything else (chats, settings,
+ * reminders…) lives behind the small "^" menu at the bottom left.
+ */
 export function JarvisApp() {
   const [status, setStatus] = useState<Status | null>(null);
   const [toasts, setToasts] = useState<Notice[]>([]);
-  const [navOpen, setNavOpen] = useState(false);
-  const navigate = useNavigate();
+  const [menu, setMenu] = useState(false);
+  const location = useLocation();
+  const onHome = location.pathname.replace(/\/$/, '') === '/jarvis';
 
   const refreshStatus = useCallback(() => { nx.status().then(setStatus).catch(() => setStatus(null)); }, []);
   useEffect(() => { refreshStatus(); const t = setInterval(refreshStatus, 30000); return () => clearInterval(t); }, [refreshStatus]);
+  useEffect(() => { setMenu(false); }, [location.pathname]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(false); };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Live notifications: server-sent events, falling back to polling when the server needs an API key.
   useEffect(() => {
@@ -54,54 +64,52 @@ export function JarvisApp() {
   }, [refreshStatus]);
 
   return (
-    <div className="nx flex h-full min-h-0 w-full">
+    <div className="nx relative h-full min-h-0 w-full">
       <style>{NX_CSS}</style>
-      <aside className={`nx-scroll fixed inset-y-0 left-0 z-40 w-60 flex-none overflow-y-auto border-r p-3 transition-transform md:static md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ background: 'rgba(3,5,11,.96)', borderColor: 'var(--line)' }}>
-        <div className="mb-4 flex items-center justify-between px-2 pt-1">
-          <div><div className="text-lg font-bold tracking-wide"><span style={{ color: 'var(--cyan)' }}>NxxR</span> JARVIS</div><div className="nx-dim text-[11px]">Your second brain</div></div>
-          <button type="button" className="md:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)}><X size={18} /></button>
-        </div>
-        <nav className="grid gap-0.5" aria-label="JARVIS">
-          {NAV.map(n => (
-            <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setNavOpen(false)}
-              className={({ isActive }) => `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm no-underline ${isActive ? 'font-medium' : ''}`}
-              style={({ isActive }) => ({ color: isActive ? 'var(--hot)' : 'var(--dim)', background: isActive ? 'rgba(47,140,255,.16)' : 'transparent' })}>
-              <n.icon size={16} /> {n.label}
-              {n.label === 'Reminders' && !!status?.counts.reminders_pending && <span className="nx-mono ml-auto text-[11px]">{status.counts.reminders_pending}</span>}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="mt-4 grid gap-1.5 px-2 text-xs">
-          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: status?.internet ? 'var(--good)' : status?.internet === false ? 'var(--bad)' : 'var(--dim)' }} /> {status?.internet ? 'Internet connected' : status?.internet === false ? 'No internet' : 'Checking internet…'}</span>
-          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: status ? 'var(--good)' : 'var(--bad)' }} /> {status ? `Brain: ${status.model || 'default'}` : 'JARVIS server offline'}</span>
-          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: status?.scheduler ? 'var(--good)' : 'var(--dim)' }} /> {status?.scheduler ? 'Reminders & monitoring on' : 'Scheduler off'}</span>
-          <button type="button" className="nx-dim mt-2 text-left underline" onClick={() => navigate('/')}>Open classic OpenJarvis</button>
-        </div>
-      </aside>
-      {navOpen && <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setNavOpen(false)} />}
-      <main className="nx-scroll min-w-0 flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-20 flex items-center gap-3 border-b px-4 py-2 md:hidden" style={{ background: 'rgba(3,5,11,.9)', borderColor: 'var(--line)' }}>
-          <button type="button" aria-label="Open menu" onClick={() => setNavOpen(true)} className="nx-btn sm">☰</button>
-          <span className="font-semibold"><span style={{ color: 'var(--cyan)' }}>NxxR</span> JARVIS</span>
-        </div>
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 md:px-6">
-          {!status && <div className="nx-card mb-4 text-sm" style={{ borderColor: 'rgba(255,125,154,.4)' }}>The JARVIS server isn't answering. Start OpenJarvis (<code>jarvis serve</code>), or open the desktop app, then reload.</div>}
-          <Routes>
-            <Route index element={<HomePage status={status} />} />
-            <Route path="voice" element={<VoicePage />} />
-            <Route path="history" element={<HistoryPage />} />
-            <Route path="briefing" element={<BriefingPage />} />
-            <Route path="inbox" element={<InboxPage />} />
-            <Route path="reminders" element={<RemindersPage />} />
-            <Route path="academic" element={<AcademicPage />} />
-            <Route path="research" element={<ResearchPage />} />
-            <Route path="sites" element={<SitesPage />} />
-            <Route path="memory" element={<MemoryPage />} />
-            <Route path="apps" element={<AppsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Routes>
-        </div>
+      <main className={`nx-scroll h-full min-w-0 ${onHome ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        {!status && !onHome && <div className="nx-card mx-auto mt-4 w-[min(1100px,calc(100%-32px))] text-sm" style={{ borderColor: 'rgba(255,125,154,.4)' }}>Nour's server isn't answering. Start OpenJarvis (<code>jarvis serve</code>) or open the desktop app, then reload.</div>}
+        <Routes>
+          <Route index element={<VoiceHome status={status} />} />
+          {[
+            ['history', <HistoryPage />], ['briefing', <BriefingPage />], ['inbox', <InboxPage />], ['reminders', <RemindersPage />],
+            ['academic', <AcademicPage />], ['research', <ResearchPage />], ['sites', <SitesPage />], ['memory', <MemoryPage />],
+            ['apps', <AppsPage />], ['settings', <SettingsPage />],
+          ].map(([path, el]) => <Route key={path as string} path={path as string} element={<div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 md:px-6">{el}</div>} />)}
+          <Route path="voice" element={<VoiceHome status={status} />} />
+        </Routes>
       </main>
+
+      {/* The "^" menu */}
+      {menu && <div className="fixed inset-0 z-40" style={{ background: 'rgba(3,5,11,.55)' }} onClick={() => setMenu(false)} />}
+      <div className="fixed z-50" style={{ left: 'max(16px, env(safe-area-inset-left))', bottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        {menu && (
+          <nav aria-label="Nour menu" className="nx-card nx-scroll mb-2 w-64 overflow-y-auto p-2" style={{ maxHeight: 'min(78vh, 640px)', boxShadow: '0 20px 60px rgba(0,0,0,.6)' }}>
+            <div className="px-2 pb-2 pt-1"><b><span style={{ color: 'var(--cyan)' }}>Nour</span> AI</b></div>
+            <div className="grid gap-0.5">
+              {NAV.map(n => (
+                <NavLink key={n.to} to={n.to} end={n.end}
+                  className={({ isActive }) => `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm no-underline ${isActive ? 'font-medium' : ''}`}
+                  style={({ isActive }) => ({ color: isActive ? 'var(--hot)' : 'var(--ink)', background: isActive ? 'rgba(47,140,255,.16)' : 'transparent' })}>
+                  <n.icon size={16} style={{ color: 'var(--cyan)' }} /> {n.label}
+                  {n.label === 'Reminders' && !!status?.counts.reminders_pending && <span className="nx-mono nx-dim ml-auto text-[11px]">{status.counts.reminders_pending}</span>}
+                </NavLink>
+              ))}
+            </div>
+            <div className="mt-2 grid gap-1 border-t px-2 pt-2 text-xs" style={{ borderColor: 'var(--line)' }}>
+              <Dot ok={status?.internet ?? null} on="Internet connected" off="No internet" />
+              <Dot ok={status ? true : false} on={`Brain: ${status?.model || 'default'}`} off="Server offline" />
+              <Dot ok={status?.scheduler ?? null} on="Reminders & monitoring on" off="Scheduler off" />
+            </div>
+          </nav>
+        )}
+        <button type="button" onClick={() => setMenu(m => !m)} aria-expanded={menu} aria-label={menu ? 'Close menu' : 'Open menu'} title="Menu"
+          className="relative grid h-10 w-10 place-items-center rounded-full border"
+          style={{ background: menu ? 'var(--blue)' : 'rgba(14,26,51,.85)', borderColor: menu ? 'var(--blue)' : 'var(--line)', color: menu ? '#fff' : 'var(--dim)', backdropFilter: 'blur(8px)' }}>
+          <ChevronUp size={20} style={{ transform: menu ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+          {!menu && !!status?.counts.notifications_unread && <span className="absolute right-1 top-1 h-2 w-2 rounded-full" style={{ background: 'var(--cyan)' }} />}
+        </button>
+      </div>
+
       <div className="fixed bottom-4 right-4 z-50 grid w-[min(360px,calc(100%-32px))] gap-2">
         {toasts.map(t => (
           <div key={t.id} role="status" className="nx-card flex gap-3" style={{ borderColor: 'var(--blue)', boxShadow: '0 10px 40px rgba(0,0,0,.5)' }}>
@@ -115,103 +123,65 @@ export function JarvisApp() {
   );
 }
 
-export const MODE_LIST: [string, string][] = [
-  ['companion', 'Sarcastic companion'], ['normal', 'Normal'], ['tutor', 'Academic tutor'], ['research', 'Research'],
-  ['social', 'Social & dating'], ['professional', 'Professional'], ['news', 'News briefing'],
-];
+function Dot({ ok, on, off }: { ok: boolean | null; on: string; off: string }) {
+  return <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ok ? 'var(--good)' : ok === false ? 'var(--bad)' : 'var(--dim)' }} /> {ok ? on : ok === false ? off : 'Checking…'}</span>;
+}
 
 function moodOf(s: VoiceState, busy = false): OrbMood {
   return s === 'speaking' ? 'speaking' : s === 'thinking' || busy ? 'thinking' : s === 'hearing' || s === 'listening' ? 'listening' : 'idle';
 }
 
-function useConversationParam(): [string | null, (id: string | null) => void] {
+const STATE_TEXT: Record<VoiceState, string> = { off: 'Tap Nour to talk', listening: 'Listening…', hearing: 'Listening…', thinking: 'Thinking…', speaking: 'Speaking… (talk to interrupt)' };
+
+/** The launch screen: the Nour logo, its state, a caption, and nothing else in the way. */
+function VoiceHome({ status }: { status: Status | null }) {
   const [params, setParams] = useSearchParams();
   const cid = params.get('c');
-  return [cid, id => setParams(p => { const n = new URLSearchParams(p); if (id) n.set('c', id); else n.delete('c'); return n; }, { replace: true })];
-}
-
-function HomePage({ status }: { status: Status | null }) {
-  const [cid, setCid] = useConversationParam();
-  const [mode, setMode] = useState(() => localStorage.getItem('nx.mode') || 'companion');
-  const [vstate, setVstate] = useState<VoiceState>('off');
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const setCid = (id: string | null) => setParams(p => { const n = new URLSearchParams(p); if (id) n.set('c', id); else n.delete('c'); return n; }, { replace: true });
   const ask = params.get('ask') || undefined;
-  useEffect(() => { localStorage.setItem('nx.mode', mode); }, [mode]);
-  const load = useCallback(() => {
-    nx.reminders('pending').then(r => setReminders(r.reminders.slice(0, 5))).catch(() => {});
-    nx.notifications(true).then(r => setNotices(r.notifications.slice(0, 5))).catch(() => {});
-    nx.jobs().then(r => setJobs(r.jobs.slice(0, 4))).catch(() => {});
-    nx.sites().then(r => setSites(r.sites)).catch(() => {});
-  }, []);
-  useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, [load]);
-  const hour = new Date().getHours();
-  const greet = hour < 5 ? 'Still awake. Bold.' : hour < 12 ? 'Good morning.' : hour < 18 ? 'Good afternoon.' : 'Good evening.';
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="grid min-w-0 content-start gap-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="w-28 flex-none sm:w-36" style={{ aspectRatio: '1' }}><Orb mood={moodOf(vstate)} palette="blue" /></div>
-          <div className="min-w-0 flex-1">
-            <div className="nx-eyebrow">{vstate === 'off' ? 'Ready' : vstate}</div>
-            <h1 className="m-0 text-2xl font-semibold">{greet}</h1>
-            <p className="nx-dim m-0 text-sm">Ask me anything, or press the microphone and just talk.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select className="nx-input" style={{ width: 'auto' }} value={mode} onChange={e => setMode(e.target.value)} aria-label="Mode">{MODE_LIST.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-            <Btn onClick={() => setCid(null)}><Sparkles size={14} className="mr-1 inline" />New chat</Btn>
-          </div>
-        </div>
-        <Card>
-          <ChatPanel key={ask || 'chat'} conversationId={cid} onConversation={setCid} mode={params.get('mode') || mode} onVoiceState={setVstate} autoSend={cid ? undefined : ask}
-            starters={["What's happening in the world today?", 'Explain the second law of thermodynamics', 'Remind me to study thermodynamics tomorrow at 6 PM', 'Should I text her? She said I\'m funny.', 'What is the price of gold right now?']} />
-        </Card>
-      </div>
-      <div className="grid content-start gap-4">
-        <Card title="Today" action={<Btn variant="sm" onClick={() => navigate('/jarvis/briefing')}>Briefing</Btn>}>
-          {reminders.length ? <ul className="m-0 grid list-none gap-2 p-0">{reminders.map(r => <li key={r.id} className="text-sm"><span className="nx-mono nx-dim text-xs">{when(r.due_at)}</span><br />{r.text}</li>)}</ul> : <p className="nx-dim m-0 text-sm">No upcoming reminders. Suspiciously calm.</p>}
-        </Card>
-        <Card title="Notifications" action={notices.length ? <Btn variant="sm ghost" onClick={() => { void nx.readAll().then(load); }}>Clear</Btn> : undefined}>
-          {notices.length ? <ul className="m-0 grid list-none gap-2 p-0">{notices.map(n => <li key={n.id} className="text-sm"><b>{n.title}</b>{n.body && <span className="nx-dim"> · {n.body.slice(0, 90)}</span>}<br /><span className="nx-dim text-xs">{ago(n.created_at)}</span></li>)}</ul> : <p className="nx-dim m-0 text-sm">Nothing new.</p>}
-        </Card>
-        <Card title="Activity">
-          {jobs.length ? <ul className="m-0 grid list-none gap-2 p-0">{jobs.map(j => <li key={j.id} className="text-sm"><Pill tone={j.status === 'done' ? 'good' : j.status === 'failed' ? 'bad' : 'blue'}>{j.status}</Pill> {j.kind.replace('_', ' ')}: {j.input.slice(0, 50)}<br /><span className="nx-dim text-xs">{j.status === 'running' ? j.progress : ago(j.finished_at || j.created_at)}</span></li>)}</ul> : <p className="nx-dim m-0 text-sm">No background tasks. Ask for research and I'll work on it here.</p>}
-        </Card>
-        <Card title="Connections">
-          <div className="grid gap-1.5 text-sm">
-            <span>Internet: <Pill tone={status?.internet ? 'good' : 'bad'}>{status?.internet ? 'online' : 'offline'}</Pill></span>
-            <span>Memory: {status?.counts.memories ?? 0} facts · History: {status?.counts.conversations ?? 0} chats</span>
-            {sites.slice(0, 4).map(s => <span key={s.id}>{s.name}: <Pill tone={statusTone(s.status)}>{s.status}</Pill></span>)}
-            <button type="button" className="nx-dim text-left text-xs underline" onClick={() => navigate('/jarvis/apps')}>Gmail, Calendar and other apps →</button>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function VoicePage() {
-  const [cid, setCid] = useConversationParam();
-  const [mode, setMode] = useState(() => localStorage.getItem('nx.mode') || 'companion');
+  const [mode] = useState(() => params.get('mode') || localStorage.getItem('nx.mode') || 'companion');
   const [vstate, setVstate] = useState<VoiceState>('off');
+  const [typing, setTyping] = useState(() => !!ask || !!cid);
+  const [caption, setCaption] = useState<{ who: 'you' | 'nour'; text: string } | null>(null);
   const voice = useVoice();
+  const navigate = useNavigate();
+  const onCaption = useCallback((who: 'you' | 'nour', text: string) => {
+    setCaption({ who, text });
+  }, []);
+  const toggleVoice = () => (voice.active ? voice.engine.stop() : void voice.engine.start());
+  const shown = caption?.text ? (caption.text.length > 240 ? '…' + caption.text.slice(-240) : caption.text) : '';
+
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <Card className="grid justify-items-center gap-3 py-6">
-        <div className="w-[min(360px,80vw)]" style={{ aspectRatio: '1' }}><Orb mood={moodOf(vstate)} palette="blue" /></div>
-        <div className="nx-eyebrow">{vstate === 'off' ? 'Tap start and talk' : vstate}</div>
-        <Btn variant={voice.active ? 'danger' : 'primary'} className="px-8 py-3 text-base" onClick={() => voice.active ? voice.engine.stop() : void voice.engine.start()}>{voice.active ? 'End conversation' : 'Start conversation'}</Btn>
-        <select className="nx-input" style={{ width: 'auto' }} value={mode} onChange={e => { setMode(e.target.value); localStorage.setItem('nx.mode', e.target.value); }} aria-label="Mode">{MODE_LIST.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-        <p className="nx-dim m-0 max-w-md text-center text-sm">Speak naturally; I answer when you pause, and you can interrupt me. Headphones stop me from hearing myself. Change voice, speed and wake word in Settings.</p>
-      </Card>
-      <Card title="Live transcript">
-        <ChatPanel conversationId={cid} onConversation={setCid} mode={mode} onVoiceState={setVstate} height="min(70vh, 640px)" />
-      </Card>
+    <div className="relative flex h-full flex-col items-center justify-center px-4" style={{ paddingBottom: typing ? 0 : 40 }}>
+      <div className={`flex flex-col items-center transition-all ${typing ? 'pt-4' : ''}`} style={{ gap: typing ? 4 : 10 }}>
+        <button type="button" onClick={toggleVoice} aria-label={voice.active ? 'Stop talking to Nour' : 'Talk to Nour'} aria-pressed={voice.active}
+          className="rounded-full" style={{ width: typing ? 'min(150px, 34vw)' : 'min(420px, 78vw, 58vh)', aspectRatio: '1', transition: 'width .35s', cursor: 'pointer' }}>
+          <Orb mood={moodOf(vstate)} palette="blue" />
+        </button>
+        <h1 className="m-0 font-light" style={{ fontSize: typing ? 22 : 'clamp(30px, 5vw, 44px)', letterSpacing: '.3em', paddingLeft: '.3em', color: 'var(--hot)', textShadow: '0 0 18px rgba(47,140,255,.55)' }}>NOUR AI</h1>
+        <div className="nx-eyebrow" style={{ color: vstate === 'off' ? 'var(--dim)' : 'var(--cyan)' }}>{status ? STATE_TEXT[vstate] : 'Server offline'}</div>
+        {!typing && (
+          <p className="m-0 mt-2 max-w-xl text-center text-[15px]" aria-live="polite" style={{ color: caption?.who === 'you' ? 'var(--dim)' : 'var(--ink)', minHeight: '3em' }}>
+            {shown ? (caption!.who === 'you' ? `“${shown}”` : shown) : voice.error || ''}
+          </p>
+        )}
+      </div>
+
+      {/* Chat stays mounted so voice turns are handled even when the keyboard view is closed. */}
+      <div className={typing ? 'nx-card mt-3 w-[min(820px,100%)]' : 'hidden'} style={{ minHeight: 0 }}>
+        <ChatPanel conversationId={cid} onConversation={setCid} mode={mode} onVoiceState={setVstate} onCaption={onCaption}
+          autoSend={cid ? undefined : ask} height="min(52vh, 560px)"
+          starters={["What's happening in the world today?", 'Remind me to study thermodynamics tomorrow at 6 PM', 'Explain the second law of thermodynamics']} />
+      </div>
+
+      <div className="fixed flex gap-2" style={{ bottom: 'max(16px, env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)' }}>
+        <button type="button" onClick={() => setTyping(t => !t)} aria-pressed={typing} aria-label={typing ? 'Hide keyboard and chat' : 'Type instead'} title={typing ? 'Back to voice' : 'Type instead'}
+          className="grid h-10 w-10 place-items-center rounded-full border" style={{ background: typing ? 'var(--blue)' : 'rgba(14,26,51,.85)', borderColor: typing ? 'var(--blue)' : 'var(--line)', color: typing ? '#fff' : 'var(--dim)' }}>
+          <Keyboard size={18} />
+        </button>
+        {cid && !typing && <button type="button" onClick={() => { setCid(null); setCaption(null); }} className="nx-btn sm ghost" style={{ borderRadius: 999 }}>New conversation</button>}
+        {!status && <button type="button" onClick={() => navigate('/')} className="nx-btn sm ghost" style={{ borderRadius: 999 }}>Classic OpenJarvis</button>}
+      </div>
     </div>
   );
 }

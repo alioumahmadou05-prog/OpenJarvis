@@ -1,4 +1,4 @@
-"""SQLite persistence for NxxR JARVIS (local-first, one file)."""
+"""SQLite persistence for Nour AI (local-first, one file)."""
 
 from __future__ import annotations
 

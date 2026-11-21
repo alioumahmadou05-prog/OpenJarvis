@@ -19,7 +19,7 @@ export function BriefingPage() {
   };
   return (
     <>
-      <PageTitle eyebrow="Daily briefing" title="What's happening today" sub="Your schedule, emails, reminders, websites and the news, from live data. Say “JARVIS, what's happening today?” any time.">
+      <PageTitle eyebrow="Daily briefing" title="What's happening today" sub="Your schedule, emails, reminders, websites and the news, from live data. Say “Nour, what's happening today?” any time.">
         <Btn variant="primary" onClick={() => { setCid(null); setRun(r => r + 1); }}>{run ? 'Brief me again' : 'Brief me now'}</Btn>
       </PageTitle>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -33,7 +33,7 @@ export function BriefingPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={settings.briefing_enabled} onChange={e => void save({ briefing_enabled: e.target.checked })} /> Notify me when my briefing is ready</label>
               <Field label="Time"><Input type="time" value={settings.briefing_time} onChange={e => void save({ briefing_time: e.target.value })} /></Field>
               <Field label="News topics (one per line, up to 6)"><Textarea rows={5} value={topics} onChange={e => setTopics(e.target.value)} onBlur={() => void save({ briefing_topics: topics.split('\n') })} /></Field>
-              <p className="nx-dim m-0 text-xs">Runs while the JARVIS server is on (the desktop app keeps it running). Email and calendar appear once connected in Connected apps.</p>
+              <p className="nx-dim m-0 text-xs">Runs while the Nour server is on (the desktop app keeps it running). Email and calendar appear once connected in Connected apps.</p>
               <span className="text-xs" style={{ color: 'var(--good)' }}>{saved}</span>
             </div>
           )}
@@ -61,7 +61,7 @@ export function InboxPage() {
 
   return (
     <>
-      <PageTitle eyebrow="Email & calendar" title={tab === 'email' ? 'Your inbox' : 'Your schedule'} sub="Read and prepare only: JARVIS drafts, you send. Nothing is sent or changed without you.">
+      <PageTitle eyebrow="Email & calendar" title={tab === 'email' ? 'Your inbox' : 'Your schedule'} sub="Read and prepare only: Nour drafts, you send. Nothing is sent or changed without you.">
         <div className="flex gap-1 rounded-full border p-0.5" style={{ borderColor: 'var(--line)' }}>
           {(['email', 'calendar'] as const).map(t => <button key={t} type="button" onClick={() => setTab(t)} className="rounded-full px-3 py-1 text-sm capitalize" style={{ background: tab === t ? 'rgba(47,140,255,.18)' : 'transparent', color: tab === t ? 'var(--hot)' : 'var(--dim)' }}>{t}</button>)}
         </div>
@@ -73,7 +73,7 @@ export function InboxPage() {
       {loading && !data && <Card><p className="nx-dim m-0">Reading…</p></Card>}
       {data && !data.connected.length && (
         <Card title={`No ${tab === 'email' ? 'email account' : 'calendar'} connected`}>
-          <p className="nx-dim mt-0 text-sm">Connect {tab === 'email' ? 'Gmail (or Outlook)' : 'Google Calendar (or Apple Calendar on a Mac)'} with a secure sign-in. Your password never passes through JARVIS.</p>
+          <p className="nx-dim mt-0 text-sm">Connect {tab === 'email' ? 'Gmail (or Outlook)' : 'Google Calendar (or Apple Calendar on a Mac)'} with a secure sign-in. Your password never passes through Nour.</p>
           <Btn variant="primary" onClick={() => navigate('/data-sources')}>Connect {tab === 'email' ? 'Gmail' : 'Calendar'}</Btn>
         </Card>
       )}
@@ -95,7 +95,7 @@ export function InboxPage() {
         </Card>
       )}
       <Card title="Write an email" className="mt-4" action={<Btn variant="sm" onClick={() => setDraft({ to: '', about: '', context: '' })}>New draft</Btn>}>
-        {draft ? <DraftBox initial={draft} onClose={() => setDraft(null)} /> : <p className="nx-dim m-0 text-sm">JARVIS writes the draft; you review and send it from your mail app.</p>}
+        {draft ? <DraftBox initial={draft} onClose={() => setDraft(null)} /> : <p className="nx-dim m-0 text-sm">Nour writes the draft; you review and send it from your mail app.</p>}
       </Card>
     </>
   );
@@ -144,7 +144,7 @@ export function RemindersPage() {
   const pending = list.filter(r => r.status === 'pending'), past = list.filter(r => r.status !== 'pending').slice(0, 30);
   return (
     <>
-      <PageTitle eyebrow="Reminders" title="Don't rely on your memory" sub="Or just say: “JARVIS, remind me to study thermodynamics tomorrow at 6 PM.” Reminders fire even when this window is closed, as long as the JARVIS server runs.">
+      <PageTitle eyebrow="Reminders" title="Don't rely on your memory" sub="Or just say: “Nour, remind me to study thermodynamics tomorrow at 6 PM.” Reminders fire even when this window is closed, as long as the Nour server runs.">
         {perm !== 'granted' && typeof Notification !== 'undefined' && <Btn onClick={() => void Notification.requestPermission().then(setPerm)}>Allow notifications</Btn>}
       </PageTitle>
       <Card title="New reminder">

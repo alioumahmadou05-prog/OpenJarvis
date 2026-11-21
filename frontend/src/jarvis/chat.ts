@@ -2,7 +2,7 @@ import { streamChat } from '../lib/sse';
 import { nx, visible, type Action, type Source } from './api';
 
 /**
- * One conversation turn: save the user's message, build JARVIS's context (persona, memory,
+ * One conversation turn: save the user's message, build Nour's context (persona, memory,
  * live web results), stream the model's reply, then save it. The server applies any actions
  * (reminders, memories) found in the reply and returns them.
  */

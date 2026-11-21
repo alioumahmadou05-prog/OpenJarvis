@@ -56,7 +56,7 @@ export function Sidebar() {
 
   const navItems = [
     { path: '/', icon: MessageSquare, label: 'Chat' },
-    { path: '/jarvis', icon: Sparkles, label: 'NxxR JARVIS' },
+    { path: '/jarvis', icon: Sparkles, label: 'Nour AI' },
     { path: '/nour', icon: Orbit, label: 'Nour' },
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/data-sources', icon: Database, label: 'Data Sources' },

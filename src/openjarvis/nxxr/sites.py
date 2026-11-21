@@ -2,7 +2,7 @@
 
 A registered site is checked over HTTP (status, latency, page title). Sites can
 also include ``bridge.js``, which reports JavaScript errors, failed requests and
-custom events back to JARVIS so it can explain what is happening inside them.
+custom events back to Nour so it can explain what is happening inside them.
 Secrets (API tokens) live in a 0600 file next to the database and are never
 returned by the API.
 """
@@ -31,7 +31,7 @@ except Exception:  # pragma: no cover - fallback outside the full package
         Path(path).chmod(mode)
 
 
-USER_AGENT = "NxxR-JARVIS/1.0 (+site monitor)"
+USER_AGENT = "Nour-AI/1.0 (+site monitor)"
 
 
 class SecretStore:
@@ -232,9 +232,9 @@ def snapshot(
     }
 
 
-BRIDGE_JS = r"""/* NxxR JARVIS bridge: add to any page you own.
+BRIDGE_JS = r"""/* Nour AI bridge: add to any page you own.
    <script src="http://localhost:8000/v1/nxxr/bridge.js" data-key="SITE_KEY"></script>
-   Reports JS errors, failed fetches and NxxR.event(...) calls to your local JARVIS.
+   Reports JS errors, failed fetches and NxxR.event(...) calls to your local Nour.
    Uses sendBeacon (no cookies, no page data beyond what you send). */
 (function () {
   var s = document.currentScript; if (!s) return;
