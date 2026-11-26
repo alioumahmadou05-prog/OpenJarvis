@@ -189,15 +189,31 @@ textarea.in { resize: vertical; min-height: 90px; line-height: 1.5; }
 .mbrand { display: none; }
 .mbrand b { font-size: 16px; font-weight: 500; letter-spacing: .06em; display: block; } .mbrand span { color: var(--dim); font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+/* ===== minimal black layout ===== */
+html, body { background: #000; }
+.app { grid-template-columns: 190px minmax(0,1fr); }
+.side { background: #000; backdrop-filter: none; border-right: 1px solid rgba(255,255,255,.07); padding: 22px 12px; }
+.side .brand, .top .when, #bell, #fullBtn, .mbrand, #bgwave, .fab { display: none !important; }
+.navbottom { margin-top: auto; }
+.nav button { font-size: 14.5px; padding: 10px 14px; color: #bdbdbd; }
+.top { padding: 10px 16px; }
+.voice { min-height: calc(100vh - 80px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 40px; }
+.voice .orbwrap { width: min(440px, 62vh, 80vw); }
+.voice .title { font-size: clamp(26px, 3vw, 34px); margin-top: 6px; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0,1fr); }
+  .side { width: 220px; }
+  .voice { min-height: calc(100vh - 170px); }
+  .voice .orbwrap { width: min(300px, 74vw); }
+}
 </style>
 </head>
 <body>
-<canvas id="bgwave" aria-hidden="true"></canvas>
 <div class="app" id="app">
   <aside class="side" id="side">
     <div class="brand"><canvas id="logo1" aria-hidden="true"></canvas><div><b>NOUR</b><span>Nour AI</span></div></div>
     <nav class="nav" id="nav" aria-label="Sections"></nav>
-    <button class="profile" id="profileBtn" type="button"><span class="avatar" id="avatar">N</span><span style="min-width:0;flex:1"><b id="pName">Your name</b><span id="pPlan">Personal</span></span><span class="dim">›</span></button>
+    <nav class="nav navbottom" aria-label="Settings"><button type="button" data-p="settings"><span>Settings</span></button></nav>
   </aside>
   <div class="main">
     <header class="top">
@@ -212,7 +228,6 @@ textarea.in { resize: vertical; min-height: 90px; line-height: 1.5; }
   </div>
 </div>
 <nav class="tabbar" id="tabbar" aria-label="Quick navigation"></nav>
-<button class="fab" id="fab" aria-label="Open chat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14.5h4"/></svg></button>
 <div id="pop" class="card pop" hidden></div>
 <div id="modal" class="modal" hidden><div class="card" id="modalCard" role="dialog" aria-modal="true"></div></div>
 <input type="file" id="fileIn" multiple hidden accept="image/*,.txt,.md,.csv,.json,.srt,.py,.js,.html,text/plain">
@@ -343,6 +358,7 @@ function drawWave(now) {
 }
 /* soft particle wave across the bottom of the screen */
 function drawBg(now) {
+  if (!$("#bgwave")) return;
   const cv = $("#bgwave"), d = Math.min(devicePixelRatio || 1, 1.5);
   if (cv.width !== Math.round(cv.clientWidth * d)) { cv.width = Math.round(cv.clientWidth * d); cv.height = Math.round(cv.clientHeight * d); }
   const x = cv.getContext("2d"), W = cv.width, H = cv.height, t = now / 1000;
@@ -557,7 +573,7 @@ async function fishSpeak(text) {
 }
 const voice = {
   active: false, speaking: false, queue: [], playing: false, el: null, recorder: null, stream: null, vadRaf: 0, fishFailed: false,
-  setState(s) { for (const o of orbs) o.state = s; const st = $("#state"); if (st) st.textContent = { idle: "Tap the sphere or the microphone to talk", listening: "Listening…", thinking: "Thinking…", speaking: "Speaking · talk to interrupt" }[s]; const mb = $("#micBtn"); if (mb) mb.classList.toggle("live", this.active); },
+  setState(s) { for (const o of orbs) o.state = s; const st = $("#state"); if (st) st.textContent = { idle: "Tap Nour to talk", listening: "Listening…", thinking: "Thinking…", speaking: "Speaking · talk to interrupt" }[s]; const mb = $("#micBtn"); if (mb) mb.classList.toggle("live", this.active); },
   say(text) { const t = text.replace(/[*_#`>|]/g, "").replace(/\[\d+\]/g, "").trim(); if (!t) return; this.queue.push(t); if (!this.playing) this.pump(); },
   stop() { this.queue = []; this.playing = false; this.speaking = false; try { this.el?.pause(); } catch {} this.el = null; try { speechSynthesis.cancel(); } catch {} this.setState(this.active ? "listening" : "idle"); },
   async pump() {
@@ -695,68 +711,40 @@ async function ask(text, { mode, source = "text", image = null, files = [], show
 function setCaption(text, who) { const el = $("#reply"); if (!el) return; const t = (text || "").trim(); el.textContent = who === "you" ? (t ? `“${t}”` : "") : t; el.classList.toggle("you", who === "you"); }
 
 /* =============================================================== navigation */
-const PAGES = [["home", "Home"], ["chat", "Chat"], ["tools", "Tools"], ["academy", "Academy"], ["trading", "Trading"], ["language", "Language"], ["files", "Files"], ["settings", "Settings"]];
+const PAGES = [["chat", "Chats"], ["home", "Voice"]];
 let page = "home";
 function go(p) {
   page = p; $("#side").classList.remove("open");
-  $$("#nav button, #tabbar button").forEach(b => b.setAttribute("aria-current", b.dataset.p === p ? "page" : "false"));
+  $$("#nav button, #tabbar button, .navbottom button").forEach(b => b.setAttribute("aria-current", b.dataset.p === p ? "page" : "false"));
   ({ home: renderHome, chat: renderChatPage, tools: renderTools, academy: renderAcademy, trading: renderTrading, language: renderLanguage, files: renderFiles, settings: renderSettings })[p]();
-  $("#page").scrollTop = 0; $("#fab").hidden = p === "chat";
+  $("#page").scrollTop = 0;
 }
-$("#nav").innerHTML = PAGES.map(([k, n]) => `<button type="button" data-p="${k}">${svg(k === "home" ? "home" : k)}<span>${n}</span></button>`).join("");
-$("#tabbar").innerHTML = [["home", "home"], ["chat", "chat"], ["tools", "grid"], ["settings", "user"]].map(([p, i]) => `<button type="button" data-p="${p}" aria-label="${p}">${svg(i)}</button>`).join("");
-$("#nav").onclick = $("#tabbar").onclick = e => { const b = e.target.closest("[data-p]"); if (b) go(b.dataset.p); };
+$("#nav").innerHTML = PAGES.map(([k, n]) => `<button type="button" data-p="${k}">${svg(k === "home" ? "mic" : "chat")}<span>${n}</span></button>`).join("");
+$(".navbottom button").innerHTML = `${svg("settings")}<span>Settings</span>`;
+$("#tabbar").innerHTML = [["chat", "chat"], ["home", "mic"], ["settings", "settings"]].map(([p, i]) => `<button type="button" data-p="${p}" aria-label="${p}">${svg(i)}</button>`).join("");
+$("#nav").onclick = $("#tabbar").onclick = $(".navbottom").onclick = e => { const b = e.target.closest("[data-p]"); if (b) go(b.dataset.p); };
 $("#burger").onclick = () => $("#side").classList.add("open");
 document.addEventListener("click", e => { if ($("#side").classList.contains("open") && !e.target.closest("#side") && !e.target.closest("#burger")) $("#side").classList.remove("open"); if (!$("#pop").hidden && !e.target.closest("#pop") && !e.target.closest("#bell")) $("#pop").hidden = true; });
-$("#fab").onclick = () => go("chat");
-$("#profileBtn").onclick = () => go("settings");
 $("#fullBtn").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch { toast("Full screen isn't available here."); } };
 function tickClock() { const d = new Date(); $("#clock").innerHTML = `${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}<i>|</i>${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`; }
 tickClock(); setInterval(tickClock, 15000);
-function renderProfile() { $("#pName").textContent = cfg.name || "Your name"; $("#pPlan").textContent = cfg.plan || "Personal"; $("#avatar").textContent = (cfg.name || "N").trim()[0].toUpperCase(); }
+function renderProfile() { if (!$("#pName")) return; $("#pName").textContent = cfg.name || "Your name"; $("#pPlan").textContent = cfg.plan || "Personal"; $("#avatar").textContent = (cfg.name || "N").trim()[0].toUpperCase(); }
 
 /* =============================================================== home */
 function renderHome() {
-  $("#page").innerHTML = `<div class="home">
-    <div class="center">
+  $("#page").innerHTML = `<div class="voice">
       <div class="orbwrap" id="orbwrap" role="button" tabindex="0" aria-label="Talk to Nour"><canvas id="orbBig" aria-hidden="true"></canvas></div>
       <h1 class="title">NOUR AI</h1>
-      <div class="subtitle">Your AI Assistant</div>
       <canvas id="wave" aria-hidden="true"></canvas>
       <div class="state" id="state" role="status"></div>
       <div class="reply" id="reply" aria-live="polite"></div>
-      <form class="askbar" id="askbar">
-        <button class="circle" type="button" id="plusBtn" aria-label="Attach a file or photo">${svg("plus")}</button>
-        <input id="askIn" placeholder="Ask Nour anything…" aria-label="Ask Nour anything" autocomplete="off">
-        <button class="circle" type="button" id="micBtn" aria-label="Talk to Nour">${svg("mic")}</button>
-      </form>
-      <div class="quick" id="quick">
-        <button class="qa" data-q="trading">${svg("trading")}<span>Analyze<br>XAUUSD</span></button>
-        <button class="qa" data-q="study">${svg("academy")}<span>Study &amp;<br>Learn</span></button>
-        <button class="qa" data-q="translate">${svg("translate")}<span>Translate</span></button>
-        <button class="qa" data-q="calc">${svg("calc")}<span>Calculate</span></button>
-        <button class="qa" data-q="tools">${svg("layers")}<span>Open<br>Tools</span></button>
-      </div>
-    </div>
-    <div class="widgets">
-      <div class="card"><h3>${svg("cpu")} Device</h3><div class="rings" id="rings"></div><p class="note" style="margin:10px 0 0">What this browser can measure honestly.</p></div>
-      <div class="card"><h3>${svg("bars")} Markets <button class="more" id="mktMore" aria-label="Open trading">›</button></h3><div id="mkt"></div></div>
-      <div class="card"><h3>${svg("check")} Tasks <button class="more" id="taskMore" aria-label="All tasks">›</button></h3><ul class="tasks" id="taskList"></ul><button class="addtask" id="addTask">+ Add Task</button></div>
-    </div></div>`;
+    </div>`;
   const big = new ParticleOrb($("#orbBig"), { count: 3600 }); big.state = orbs[0].state; orbs.splice(2); orbs.push(big);
   waveCanvas = $("#wave");
   voice.setState(voice.speaking ? "speaking" : voice.active ? "listening" : "idle");
   const last = conv(current)?.msgs.at(-1); if (last) setCaption(last.content, last.role === "user" ? "you" : "nour");
   const toggle = () => voice.active ? voice.end() : voice.start();
   $("#orbwrap").onclick = toggle; $("#orbwrap").onkeydown = e => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggle());
-  $("#micBtn").onclick = toggle;
-  $("#askbar").onsubmit = e => { e.preventDefault(); const t = $("#askIn").value; $("#askIn").value = ""; ask(t); };
-  $("#plusBtn").onclick = () => pickFiles(files => { go("chat"); setTimeout(() => attachToComposer(files), 50); });
-  $("#quick").onclick = e => { const b = e.target.closest("[data-q]"); if (!b) return; const q = b.dataset.q;
-    if (q === "trading") { current = null; ask("Analyze XAUUSD right now: current price and today's move from live sources, market structure, key levels, liquidity, bullish and bearish scenarios, and what confirmation to wait for. Remind me about risk.", { mode: "trading" }); }
-    else if (q === "study") go("academy"); else if (q === "translate") go("language"); else if (q === "calc") { go("tools"); } else go("tools"); };
-  $("#mktMore").onclick = () => go("trading"); $("#taskMore").onclick = () => openTasks(); $("#addTask").onclick = () => openTasks(true);
-  renderRings(); renderMarket(); renderTasks();
 }
 async function renderRings() {
   const el = $("#rings"); if (!el) return;
