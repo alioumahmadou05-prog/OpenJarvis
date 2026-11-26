@@ -419,7 +419,42 @@ function applyActions(text) {
 const LIVE = /\b(today|tonight|yesterday|this (week|morning|month)|latest|recent|news|breaking|current(ly)?|right now|price|gold|xau|bitcoin|btc|oil|weather|score|match|premier league|election|what'?s happening|update|trending|20[2-9]\d|aujourd'?hui|actualit|prix|en ce moment|hoy|noticias|heute|oggi|hoje|сегодня|今天|اليوم|yau)\b/i;
 
 /* =============================================================== Groq (brain, live web, vision, hearing) */
-async function groqStream({ messages, model, onText, signal }) {
+const PREF = {
+  chat: ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct", "qwen/qwen3-32b", "meta-llama/llama-4-maverick-17b-128e-instruct", "openai/gpt-oss-20b", "llama-3.1-8b-instant"],
+  web: ["groq/compound", "compound-beta", "groq/compound-mini", "compound-beta-mini"],
+  vision: ["meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct"],
+  stt: ["whisper-large-v3-turbo", "whisper-large-v3"],
+};
+let modelIds = null;
+async function resolveModels(force = false) {
+  if (!cfg.groqKey) return;
+  if (!force && modelIds) return;
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${cfg.groqKey}` } });
+    if (!r.ok) return;
+    modelIds = ((await r.json()).data || []).filter(m => m.active !== false).map(m => m.id);
+  } catch { return; }
+  const has = id => modelIds.includes(id);
+  const textModels = modelIds.filter(id => !/whisper|tts|guard|playai|orpheus|prompt-guard|distil/i.test(id));
+  const pick = (list, fallback) => list.find(has) || fallback;
+  const before = JSON.stringify([cfg.chatModel, cfg.webModel, cfg.visionModel, cfg.sttModel]);
+  if (!has(cfg.chatModel)) cfg.chatModel = pick(PREF.chat, textModels.find(id => !/compound|vision|scout/i.test(id)) || textModels[0] || cfg.chatModel);
+  if (!has(cfg.webModel)) cfg.webModel = pick(PREF.web, cfg.chatModel);
+  if (!has(cfg.visionModel)) cfg.visionModel = pick(PREF.vision, cfg.visionModel);
+  if (!has(cfg.sttModel)) cfg.sttModel = pick(PREF.stt, cfg.sttModel);
+  if (JSON.stringify([cfg.chatModel, cfg.webModel, cfg.visionModel, cfg.sttModel]) !== before) { saveCfg(); if (page === "settings") renderSettings(); }
+}
+async function groqStream(opts) {
+  try { return await groqStreamOnce(opts); }
+  catch (e) {
+    if (!/does not exist|model_not_found|decommissioned|not have access/i.test(e.message)) throw e;
+    const kind = opts.model === cfg.webModel ? "webModel" : opts.model === cfg.visionModel ? "visionModel" : "chatModel";
+    await resolveModels(true);
+    if (cfg[kind] === opts.model) throw e;
+    return await groqStreamOnce({ ...opts, model: cfg[kind] });
+  }
+}
+async function groqStreamOnce({ messages, model, onText, signal }) {
   const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST", signal,
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.groqKey}` },
@@ -929,7 +964,9 @@ function renderSettings() {
       <label class="field">Mac voice (backup)<select class="in" id="sSys"><option value="">Automatic (British male first)</option>${vs.map(v => `<option ${v.name === cfg.systemVoice ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
       <label class="field">Speed ${cfg.rate.toFixed(2)}×<input type="range" id="sRate" min=".7" max="1.4" step=".05" value="${cfg.rate}"></label></div>
     <div class="card" style="display:grid;gap:12px"><h3>Models (Groq)</h3>
-      <label class="field">Chat<input class="in mono" id="sChat" value="${esc(cfg.chatModel)}"></label>
+      <label class="field">Chat<input class="in mono" id="sChat" value="${esc(cfg.chatModel)}" list="groqModels"></label>
+      <datalist id="groqModels">${(modelIds || []).map(id => `<option value="${esc(id)}">`).join("")}</datalist>
+      <p class="note" style="margin:0">${modelIds ? `${modelIds.length} models available on your key. Nour picks working ones automatically.` : "Nour picks working models automatically."}</p>
       <label class="field">Live web answers<input class="in mono" id="sWeb" value="${esc(cfg.webModel)}"></label>
       <label class="field">Images<input class="in mono" id="sVision" value="${esc(cfg.visionModel)}"></label>
       <label class="field">Speech-to-text<input class="in mono" id="sStt" value="${esc(cfg.sttModel)}"></label></div>
@@ -944,7 +981,7 @@ function renderSettings() {
   bind("#sChat", "chatModel", v => v.trim() || "llama-3.3-70b-versatile"); bind("#sWeb", "webModel", v => v.trim() || "groq/compound"); bind("#sVision", "visionModel", v => v.trim()); bind("#sStt", "sttModel", v => v.trim() || "whisper-large-v3-turbo");
   $("#sHumor").oninput = e => { cfg.humor = +e.target.value; $("#sHumorL").textContent = ["off", "light", "normal", "maximum"][cfg.humor]; saveCfg(); };
   $("#sRate").oninput = e => { cfg.rate = +e.target.value; saveCfg(); };
-  $("#sSave").onclick = () => { cfg.groqKey = $("#sGroq").value.trim(); cfg.fishKey = $("#sFish").value.trim(); voice.fishFailed = false; saveCfg(); $("#sMsg").textContent = "Saved."; renderRings(); };
+  $("#sSave").onclick = async () => { cfg.groqKey = $("#sGroq").value.trim(); cfg.fishKey = $("#sFish").value.trim(); voice.fishFailed = false; saveCfg(); $("#sMsg").textContent = "Saved. Checking your models…"; renderRings(); await resolveModels(true); $("#sMsg").textContent = modelIds ? `Saved. Using ${cfg.chatModel}.` : "Saved, but Groq didn't answer the model check."; };
   $("#sTest").onclick = () => { voice.fishFailed = false; voice.stop(); voice.say("Good evening. Nour here, as modest as ever."); };
   const mem = () => { $("#sMem").innerHTML = memories.length ? memories.map(m => `<div class="row" style="justify-content:space-between"><span>${esc(m.text)}</span><button class="btn sm" data-m="${m.id}">✕</button></div>`).join("") : '<p class="note" style="margin:0">Nothing yet. Tell Nour about yourself.</p>'; $$("[data-m]").forEach(b => b.onclick = () => { memories = memories.filter(x => x.id !== b.dataset.m); saveMem(); mem(); }); };
   mem(); $("#sMemForm").onsubmit = e => { e.preventDefault(); const t = $("#sMemIn").value.trim(); if (t) { memories.push({ id: uid(), text: t, at: Date.now() }); saveMem(); $("#sMemIn").value = ""; mem(); } };
@@ -969,7 +1006,7 @@ function openSetup() {
   $("#uGo").onclick = () => {
     const g = $("#uGroq").value.trim();
     if (!/^gsk_/.test(g)) { $("#uMsg").innerHTML = '<span class="err">A Groq key starts with gsk_.</span>'; return; }
-    Object.assign(cfg, { groqKey: g, fishKey: $("#uFish").value.trim(), name: $("#uName").value.trim(), setupDone: true }); saveCfg(); renderProfile(); closeModal(); renderRings();
+    Object.assign(cfg, { groqKey: g, fishKey: $("#uFish").value.trim(), name: $("#uName").value.trim(), setupDone: true }); saveCfg(); renderProfile(); closeModal(); renderRings(); resolveModels(true);
     voice.say(`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}${cfg.name ? ", " + cfg.name : ""}. Nour online. Try not to bore me.`);
   };
 }
@@ -977,7 +1014,7 @@ function openSetup() {
 /* =============================================================== start */
 renderProfile();
 go("home");
-if (!cfg.groqKey) setTimeout(openSetup, 400);
+if (!cfg.groqKey) setTimeout(openSetup, 400); else resolveModels();
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => page === "settings" && renderSettings();
 </script>
 </body>
