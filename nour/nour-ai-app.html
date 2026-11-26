@@ -285,8 +285,9 @@ const cfg = Object.assign({
   openaiKey: "", provider: "auto", oaChat: "", oaStt: "", oaTts: "", oaVoice: "onyx",
   groqKey: "", fishKey: "", fishVoice: "", fishModel: "",
   chatModel: "llama-3.3-70b-versatile", webModel: "groq/compound", visionModel: "meta-llama/llama-4-scout-17b-16e-instruct", sttModel: "whisper-large-v3-turbo",
-  tts: "fish", systemVoice: "", rate: 1, humor: 2, name: "", plan: "Personal", wake: false, setupDone: false,
+  tts: "system", systemVoice: "", rate: 1, pitch: 0.85, humor: 2, name: "", plan: "Personal", wake: false, setupDone: false,
 }, store.get("cfg", {}));
+cfg.tts = "system"; // Nour speaks with the free voice built into the computer; no audio API
 const saveCfg = () => store.set("cfg", cfg);
 let convs = store.get("convs", []);           // [{id, title, mode, updated, msgs:[{role, content, sources?, actions?, image?}]}]
 let tasks = store.get("tasks", []);           // [{id, text, due (ms|null), done, notified}]
@@ -375,13 +376,13 @@ function drawBg(now) {
 requestAnimationFrame(loop);
 
 /* =============================================================== audio level (mic + voice) */
-const audio = { level: 0, ctx: null, mic: null, tts: null };
+const audio = { level: 0, ctx: null, mic: null, tts: null, word: 0 };
 function ensureCtx() { if (!audio.ctx) audio.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (audio.ctx.state === "suspended") audio.ctx.resume(); return audio.ctx; }
 function meter(analyser) { const a = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(a); let s = 0; for (const v of a) s += v * v; return Math.sqrt(s / a.length); }
 setInterval(() => {
   let l = 0;
   if (voice.speaking && audio.tts) l = Math.min(1, meter(audio.tts) * 6);
-  else if (voice.speaking) l = .35 + .25 * Math.sin(Date.now() / 120);
+  else if (voice.speaking) { const since = Date.now() - audio.word; l = .28 + .1 * Math.sin(Date.now() / 140) + (since < 260 ? .45 * (1 - since / 260) : 0); }
   else if (audio.mic && voice.active) l = Math.min(1, meter(audio.mic) * 8);
   audio.level += (l - audio.level) * .35;
   for (const o of orbs) o.level = audio.level;
@@ -401,6 +402,7 @@ function persona(mode, extra = "") {
   const open = tasks.filter(t => !t.done).slice(0, 15);
   const tk = open.length ? "\nTHE USER'S OPEN TASKS:\n- " + open.map(t => t.text + (t.due ? ` (due ${new Date(t.due).toLocaleString()})` : "")).join("\n- ") : "";
   return `You are Nour AI, the user's personal AI assistant${cfg.name ? ` (the user is ${cfg.name})` : ""}: companion, tutor, research assistant, social advisor and secretary.
+Voice & manner: a male British butler with a razor-dry wit. In English use British spelling and phrasing ("rather", "I'm afraid", "brilliant", "splendid", "mate" only ironically), deadpan understatement, polite mockery, the occasional "sir". In other languages keep the same dry, elegant tone.
 Personality: highly intelligent, quick, naturally sarcastic and witty (humour level ${cfg.humor}/3), confident not arrogant, slightly dramatic when deserved. Tease and challenge questionable decisions, but read the room: drop the jokes for serious topics (health, grief, money at risk, distress). Never robotic; don't open with "Certainly!" or "How can I help you?". Sarcasm never reduces accuracy.
 Reply in the language the user is using; switch when they switch; never mix languages unless they do.
 Your replies may be read aloud: keep them natural and fairly short unless asked for detail.
@@ -561,7 +563,43 @@ async function transcribe(blob) {
   return ((await r.json()).text || "").trim();
 }
 
-/* =============================================================== Fish Audio (voice) with system fallback */
+/* =============================================================== Nour's voice: free, built into the computer */
+// Best British male voices first. "Premium"/"Enhanced" versions are the downloadable high-quality Mac voices.
+const VOICE_RANK = [
+  /Daniel.*\((Premium|Enhanced)\)/i, /Arthur.*\((Premium|Enhanced)\)/i, /Oliver.*\((Premium|Enhanced)\)/i,
+  /Microsoft (Ryan|Thomas|Oliver|Alfie|Elliot|Ethan|Noah).*Online.*United Kingdom/i,
+  /^Arthur/i, /^Daniel/i, /Google UK English Male/i, /Microsoft George/i, /Microsoft (Ryan|Thomas)/i,
+];
+const FEMALE = /female|serena|kate|stephanie|martha|libby|sonia|maisie|hazel|susan|fiona|moira|karen|tessa|samantha|victoria|allison|ava|zoe|siri.*female|amelie|audrey|aurelie|marie/i;
+function britishMaleVoices(vs) {
+  const ranked = [];
+  for (const re of VOICE_RANK) for (const v of vs) if (re.test(v.name) && !ranked.includes(v)) ranked.push(v);
+  for (const v of vs) if (/en[-_]GB/i.test(v.lang) && !FEMALE.test(v.name) && !ranked.includes(v)) ranked.push(v);
+  return ranked;
+}
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  return vs.find(x => x.name === cfg.systemVoice) || britishMaleVoices(vs)[0] || vs.find(x => /^en/i.test(x.lang) && !FEMALE.test(x.name)) || null;
+}
+// Clean text for speaking and cut it into short phrases (long utterances get cut off in Chrome).
+function speakable(text) {
+  const t = String(text)
+    .replace(/https?:\/\/\S+/g, "the link")
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")
+    .replace(/[*_#`>|~]/g, "").replace(/\[(\d+)\]/g, "")
+    .replace(/\s+[—–]\s+/g, ", ").replace(/\be\.g\./gi, "for example").replace(/\bi\.e\./gi, "that is")
+    .replace(/\s+/g, " ").replace(/\s+([.,!?;:])/g, "$1").trim();
+  if (!t) return [];
+  const out = [];
+  for (const sent of t.match(/[^.!?…]+[.!?…]*\s*/g) || [t]) {
+    let x = sent.trim();
+    while (x.length > 180) { let k = x.lastIndexOf(", ", 180); if (k < 60) k = x.lastIndexOf(" ", 180); if (k < 1) k = 180; out.push(x.slice(0, k + 1).trim()); x = x.slice(k + 1).trim(); }
+    if (x) out.push(x);
+  }
+  return out;
+}
+
+/* =============================================================== Fish Audio (unused; kept for reference) */
 async function fishSpeak(text) {
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${cfg.fishKey}` };
   if (cfg.fishModel) headers.model = cfg.fishModel;
@@ -581,11 +619,9 @@ const voice = {
     while (this.queue.length && this.playing) {
       const text = this.queue.shift(); this.speaking = true; this.setState("speaking");
       try {
-        if (cfg.tts === "openai" && cfg.openaiKey && !this.fishFailed) await this.playOpenAI(text);
-        else if (cfg.tts === "fish" && cfg.fishKey && !this.fishFailed) await this.playFish(text); else await this.playSystem(text);
+        await this.playSystem(text);
       } catch (e) {
-        if (!this.fishFailed) { this.fishFailed = true; toast((cfg.tts === "openai" ? "OpenAI voice" : "Fish Audio voice") + " didn't work (" + e.message + "). Using your Mac's voice."); }
-        try { await this.playSystem(text); } catch {}
+        console.warn("voice", e);
       }
     }
     this.playing = false; this.speaking = false; this.setState(this.active ? "listening" : "idle");
@@ -610,13 +646,18 @@ const voice = {
     });
   },
   playSystem(text) {
-    return new Promise(res => {
-      if (!("speechSynthesis" in window)) return res();
-      const u = new SpeechSynthesisUtterance(text), vs = speechSynthesis.getVoices();
-      const v = vs.find(x => x.name === cfg.systemVoice) || vs.find(x => /Daniel|Google UK English Male/.test(x.name));
-      if (v) { u.voice = v; u.lang = v.lang; } u.rate = cfg.rate; u.onend = u.onerror = () => res();
+    if (!("speechSynthesis" in window)) return Promise.resolve();
+    const v = pickVoice(), parts = speakable(text);
+    return parts.reduce((chain, part) => chain.then(() => new Promise(res => {
+      if (!this.playing) return res();
+      const u = new SpeechSynthesisUtterance(part);
+      try { if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB"; } catch { u.lang = "en-GB"; }
+      u.rate = 0.97 * cfg.rate; u.pitch = cfg.pitch; u.volume = 1;
+      u.onboundary = () => { audio.word = Date.now(); };
+      u.onend = u.onerror = () => res();
       speechSynthesis.speak(u);
-    });
+      setTimeout(res, 2500 + part.length * 120); // never hang if the browser drops an utterance
+    })), Promise.resolve());
   },
   /* continuous listening: voice-activity detection → Groq Whisper (or the browser's recognizer without a key) */
   async start() {
@@ -1017,20 +1058,20 @@ function renderSettings() {
       <label class="field">OpenAI API key<input class="in mono" id="sOpenAI" type="password" value="${esc(cfg.openaiKey)}" placeholder="sk-…" autocomplete="off"></label>
       <label class="field">Groq API key<input class="in mono" id="sGroq" type="password" value="${esc(cfg.groqKey)}" placeholder="gsk_…" autocomplete="off"></label>
       <p class="note" style="margin:0">Using now: <b>${provider() === "openai" ? "OpenAI · " + esc(cfg.oaChat || "auto") : provider() === "groq" ? "Groq · " + esc(cfg.chatModel) : "no brain yet"}</b></p>
-      <label class="field">Fish Audio API key (voice)<input class="in mono" id="sFish" type="password" value="${esc(cfg.fishKey)}" placeholder="Your Fish Audio key" autocomplete="off"></label>
       <p class="note">Stored only in this browser. Never share this file with your keys inside it saved; anyone with them can spend your credit.</p>
-      <div class="row"><button class="btn white" id="sSave">Save keys</button><button class="btn" id="sTest">Test voice</button></div><div id="sMsg" class="note"></div></div>
+      <div class="row"><button class="btn white" id="sSave">Save keys</button></div><div id="sMsg" class="note"></div></div>
     <div class="card" style="display:grid;gap:12px"><h3>Voice</h3>
-      <label class="field">Speaking voice<select class="in" id="sTts"><option value="openai">OpenAI voice (natural)</option><option value="fish">Fish Audio (natural)</option><option value="system">Mac / browser voice</option></select></label>
-      <label class="field">OpenAI voice<select class="in" id="sOaVoice">${["onyx", "ash", "echo", "fable", "alloy", "ballad", "coral", "nova", "sage", "shimmer", "verse"].map(v => `<option ${v === cfg.oaVoice ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-      <label class="field">Fish Audio voice ID (optional; copy a voice's ID from fish.audio)<input class="in mono" id="sFishVoice" value="${esc(cfg.fishVoice)}" placeholder="e.g. a voice model ID"></label>
-      <label class="field">Fish Audio model (optional)<input class="in mono" id="sFishModel" value="${esc(cfg.fishModel)}" placeholder="leave empty for the default"></label>
-      <label class="field">Mac voice (backup)<select class="in" id="sSys"><option value="">Automatic (British male first)</option>${vs.map(v => `<option ${v.name === cfg.systemVoice ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
-      <label class="field">Speed ${cfg.rate.toFixed(2)}×<input type="range" id="sRate" min=".7" max="1.4" step=".05" value="${cfg.rate}"></label></div>
+      <p class="note" style="margin:0">Nour speaks with the free voice built into your computer: no audio API, no cost. Now using: <b>${esc(pickVoice()?.name || "loading…")}</b></p>
+      <label class="field">Voice<select class="in" id="sSys"><option value="">Automatic (best British male)</option>${(() => { const bm = britishMaleVoices(vs); return [...bm, ...vs.filter(v => !bm.includes(v) && /^en/i.test(v.lang))].map(v => `<option value="${esc(v.name)}" ${v.name === cfg.systemVoice ? "selected" : ""}>${esc(v.name)}${bm.includes(v) ? " · British male" : ""}</option>`).join(""); })()}</select></label>
+      <label class="field">Depth <input type="range" id="sPitch" min=".5" max="1.2" step=".05" value="${cfg.pitch}"></label>
+      <label class="field">Speed <input type="range" id="sRate" min=".7" max="1.4" step=".05" value="${cfg.rate}"></label>
+      <div class="row"><button class="btn white" id="sTest">Test voice</button></div>
+      <details class="note"><summary>Make it sound much better on a Mac (free, 2 minutes)</summary>
+        <ol style="margin:8px 0 0;padding-left:18px;line-height:1.6"><li>Apple menu → System Settings → Accessibility → Spoken Content.</li><li>System voice → Manage Voices…</li><li>English (United Kingdom) → download <b>Daniel (Premium)</b> or <b>Arthur (Enhanced)</b>.</li><li>Quit and reopen Chrome, then pick it here (Nour chooses it automatically).</li></ol></details></div>
     <div class="card" style="display:grid;gap:12px"><h3>Models (OpenAI)</h3>
       <label class="field">Chat &amp; live web<input class="in mono" id="sOaChat" value="${esc(cfg.oaChat)}" placeholder="chosen automatically"></label>
       <label class="field">Speech-to-text<input class="in mono" id="sOaStt" value="${esc(cfg.oaStt)}" placeholder="chosen automatically"></label>
-      <label class="field">Voice model<input class="in mono" id="sOaTts" value="${esc(cfg.oaTts)}" placeholder="chosen automatically"></label></div>
+</div>
     <div class="card" style="display:grid;gap:12px"><h3>Models (Groq)</h3>
       <label class="field">Chat<input class="in mono" id="sChat" value="${esc(cfg.chatModel)}" list="groqModels"></label>
       <datalist id="groqModels">${(modelIds || []).map(id => `<option value="${esc(id)}">`).join("")}</datalist>
@@ -1043,14 +1084,15 @@ function renderSettings() {
     <div class="card" style="display:grid;gap:10px"><h3>Data</h3><p class="note" style="margin:0">${convs.length} chats · ${tasks.length} tasks · ${memories.length} memories</p>
       <div class="row"><button class="btn" id="sExport">Export my data</button><button class="btn" id="sWipe" style="color:var(--bad)">Delete everything</button></div></div>
   </div>`;
-  $("#sTts").value = cfg.tts; $("#sProv").value = cfg.provider;
+  $("#sProv").value = cfg.provider;
   const bind = (id, key, fn = v => v) => { $(id).onchange = e => { cfg[key] = fn(e.target.type === "checkbox" ? e.target.checked : e.target.value); saveCfg(); renderProfile(); }; };
-  bind("#sName", "name", v => v.trim()); bind("#sPlan", "plan"); bind("#sWake", "wake"); bind("#sTts", "tts"); bind("#sFishVoice", "fishVoice", v => v.trim()); bind("#sFishModel", "fishModel", v => v.trim()); bind("#sSys", "systemVoice"); bind("#sProv", "provider"); bind("#sOaVoice", "oaVoice"); bind("#sOaChat", "oaChat", v => v.trim()); bind("#sOaStt", "oaStt", v => v.trim()); bind("#sOaTts", "oaTts", v => v.trim());
+  bind("#sName", "name", v => v.trim()); bind("#sPlan", "plan"); bind("#sWake", "wake"); bind("#sSys", "systemVoice"); bind("#sProv", "provider"); bind("#sOaChat", "oaChat", v => v.trim()); bind("#sOaStt", "oaStt", v => v.trim());
   bind("#sChat", "chatModel", v => v.trim() || "llama-3.3-70b-versatile"); bind("#sWeb", "webModel", v => v.trim() || "groq/compound"); bind("#sVision", "visionModel", v => v.trim()); bind("#sStt", "sttModel", v => v.trim() || "whisper-large-v3-turbo");
   $("#sHumor").oninput = e => { cfg.humor = +e.target.value; $("#sHumorL").textContent = ["off", "light", "normal", "maximum"][cfg.humor]; saveCfg(); };
   $("#sRate").oninput = e => { cfg.rate = +e.target.value; saveCfg(); };
-  $("#sSave").onclick = async () => { cfg.openaiKey = $("#sOpenAI").value.trim(); if (cfg.openaiKey) await resolveOpenAI(true); cfg.groqKey = $("#sGroq").value.trim(); cfg.fishKey = $("#sFish").value.trim(); voice.fishFailed = false; saveCfg(); $("#sMsg").textContent = "Saved. Checking your models…"; renderRings(); await resolveModels(true); $("#sMsg").textContent = provider() === "openai" ? (oaIds ? `Saved. Using OpenAI · ${cfg.oaChat}.` : "Saved, but OpenAI didn't answer the model check (check the key and billing).") : modelIds ? `Saved. Using Groq · ${cfg.chatModel}.` : "Saved."; };
-  $("#sTest").onclick = () => { voice.fishFailed = false; voice.stop(); voice.say("Good evening. Nour here, as modest as ever."); };
+  $("#sPitch").oninput = e => { cfg.pitch = +e.target.value; saveCfg(); };
+  $("#sSave").onclick = async () => { cfg.openaiKey = $("#sOpenAI").value.trim(); if (cfg.openaiKey) await resolveOpenAI(true); cfg.groqKey = $("#sGroq").value.trim(); saveCfg(); $("#sMsg").textContent = "Saved. Checking your models…"; renderRings(); await resolveModels(true); $("#sMsg").textContent = provider() === "openai" ? (oaIds ? `Saved. Using OpenAI · ${cfg.oaChat}.` : "Saved, but OpenAI didn't answer the model check (check the key and billing).") : modelIds ? `Saved. Using Groq · ${cfg.chatModel}.` : "Saved."; };
+  $("#sTest").onclick = () => { voice.stop(); voice.say("Good evening, sir. Nour here, as modest as ever. Do try to ask me something challenging today."); };
   const mem = () => { $("#sMem").innerHTML = memories.length ? memories.map(m => `<div class="row" style="justify-content:space-between"><span>${esc(m.text)}</span><button class="btn sm" data-m="${m.id}">✕</button></div>`).join("") : '<p class="note" style="margin:0">Nothing yet. Tell Nour about yourself.</p>'; $$("[data-m]").forEach(b => b.onclick = () => { memories = memories.filter(x => x.id !== b.dataset.m); saveMem(); mem(); }); };
   mem(); $("#sMemForm").onsubmit = e => { e.preventDefault(); const t = $("#sMemIn").value.trim(); if (t) { memories.push({ id: uid(), text: t, at: Date.now() }); saveMem(); $("#sMemIn").value = ""; mem(); } };
   $("#sExport").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ convs, tasks, memories, notices }, null, 2)], { type: "application/json" })); a.download = "nour-ai-data.json"; a.click(); };
@@ -1065,20 +1107,18 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal
 function openSetup() {
   modal(`<h2 style="margin:0;font-weight:400;letter-spacing:.2em">NOUR AI</h2><p class="dim" style="margin:0">Paste your keys once. They stay in this browser on your Mac.</p>
     <label class="field">Your name<input class="in" id="uName" value="${esc(cfg.name)}" placeholder="What should Nour call you?"></label>
-    <label class="field">OpenAI API key (brain, live web, hearing, voice) · platform.openai.com<input class="in mono" id="uOpenAI" type="password" value="${esc(cfg.openaiKey)}" placeholder="sk-…" autocomplete="off"></label>
-    <label class="field">Groq API key (optional backup brain) · console.groq.com<input class="in mono" id="uGroq" type="password" value="${esc(cfg.groqKey)}" placeholder="gsk_…" autocomplete="off"></label>
-    <label class="field">Fish Audio API key (natural voice, optional) · fish.audio<input class="in mono" id="uFish" type="password" value="${esc(cfg.fishKey)}" autocomplete="off"></label>
-    <p class="note" style="margin:0">Keys pasted into a chat or message should be regenerated first. Without a Fish key, Nour uses your Mac's voice.</p>
+    <label class="field">OpenAI API key (brain, live web, hearing) · platform.openai.com<input class="in mono" id="uOpenAI" type="password" value="${esc(cfg.openaiKey)}" placeholder="sk-…" autocomplete="off"></label>
+    <label class="field">Groq API key (free brain) · console.groq.com<input class="in mono" id="uGroq" type="password" value="${esc(cfg.groqKey)}" placeholder="gsk_…" autocomplete="off"></label>
+    <p class="note" style="margin:0">Keys pasted into a chat or message should be regenerated first. Nour speaks with your computer's own voice: free, no audio API.</p>
     <div id="uMsg" class="note"></div>
     <div class="row" style="justify-content:flex-end"><button class="btn" id="uLater">Later</button><button class="btn white" id="uGo">Start Nour</button></div>`);
   $("#uLater").onclick = closeModal;
   $("#uGo").onclick = () => {
-    const g = $("#uGroq").value.trim(), o = $("#uOpenAI").value.trim(), f = $("#uFish").value.trim();
+    const g = $("#uGroq").value.trim(), o = $("#uOpenAI").value.trim();
     if (o && !/^sk-/.test(o)) { $("#uMsg").innerHTML = '<span class="err">An OpenAI key starts with sk-.</span>'; return; }
     if (g && !/^gsk_/.test(g)) { $("#uMsg").innerHTML = '<span class="err">A Groq key starts with gsk_.</span>'; return; }
     if (!o && !g) { $("#uMsg").innerHTML = '<span class="err">Paste an OpenAI key (or a Groq key).</span>'; return; }
-    Object.assign(cfg, { openaiKey: o, groqKey: g, fishKey: f, name: $("#uName").value.trim(), setupDone: true });
-    if (o && !f) cfg.tts = "openai";
+    Object.assign(cfg, { openaiKey: o, groqKey: g, name: $("#uName").value.trim(), setupDone: true });
     saveCfg(); renderProfile(); closeModal(); renderRings(); resolveModels(true); resolveOpenAI(true);
     voice.say(`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}${cfg.name ? ", " + cfg.name : ""}. Nour online. Try not to bore me.`);
   };
