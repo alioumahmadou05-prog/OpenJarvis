@@ -14,3 +14,7 @@ const monkey = tpl
   .replaceAll(' fur="brown"', "");
 writeFileSync("preview/Nour Monkey.html", monkey.replace("/*__CAT__*/", () => inline("build/renderer/cat/nour-monkey.js")));
 console.log("previews written");
+
+const nxTpl = readFileSync("preview/nx-preview.template.html", "utf8");
+writeFileSync("preview/Nour Nx.html", nxTpl.replace("/*__NX__*/", () => inline("build/renderer/character/nour-nx.js")));
+console.log("Nour Nx preview written");

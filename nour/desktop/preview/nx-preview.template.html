@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nour Nx</title>
+<style>
+  :root { --bg: #000; --panel: #070a14; --line: #161c33; --text: #e8edff; --dim: #8a96bd; --accent: #46d7ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Inter", system-ui, -apple-system, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 60px; }
+  h1 { font-weight: 300; letter-spacing: .32em; margin: 0; font-size: 22px; }
+  h2 { font-weight: 400; letter-spacing: .14em; font-size: 13px; color: var(--dim); text-transform: uppercase; margin: 30px 0 10px; }
+  p.sub { color: var(--dim); margin: 4px 0 22px; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+  .stage nour-nx { width: min(380px, 100%); justify-self: center; }
+  .ctl { display: grid; gap: 8px; }
+  .lbl { color: var(--dim); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; margin-top: 6px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { background: #0d1326; color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--text); color: #050815; border-color: var(--text); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 8px 10px; text-align: center; overflow: hidden; }
+  .card nour-nx { width: 140px; }
+  .card b { display: block; font-weight: 500; margin-top: 2px; }
+  .card span { color: var(--dim); font-size: 12px; }
+  @media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>NOUR · Nx</h1>
+  <p class="sub">Your monkey, traced from your picture and animated: 9 assistant states and 20 fun actions.</p>
+
+  <section class="stage">
+    <nour-nx id="big" state="idle"></nour-nx>
+    <div class="ctl">
+      <div class="lbl">Assistant states</div>
+      <div class="btns" id="stateBtns"></div>
+      <div class="lbl">Fun actions</div>
+      <div class="btns" id="actionBtns"></div>
+      <div class="lbl">Voice level (lip-sync test)</div>
+      <input type="range" id="lvl" min="0" max="1" step="0.01" value="0" aria-label="Voice level">
+      <button id="demo">Play a demo</button>
+    </div>
+  </section>
+
+  <h2>Assistant states</h2>
+  <section class="grid" id="gridStates"></section>
+  <h2>Fun actions</h2>
+  <section class="grid" id="gridActions"></section>
+</main>
+<script type="module">
+/*__NX__*/
+const INFO = {
+  sleeping: "Asleep (say “Nour”)", idle: "Waiting, breathing", listening: "Hand to ear, hearing you", thinking: "Hand on chin, thinking",
+  speaking: "Talking, mouth follows the voice", working: "Typing on its laptop", success: "Task done: jumps, arms up", error: "Something went wrong",
+  translating: "Live translation", walk: "Walking", coffee: "Sipping coffee", glasses: "Cleaning its glasses", reading: "Reading a book",
+  phone: "Scrolling its phone", clipboard: "Ticking a checklist", idea: "Got an idea!", confused: "Confused", sad: "Sad", angry: "Angry",
+  thumbsup: "Thumbs up", waiting: "Waiting, checking its watch", dance: "Dancing", celebrate: "Big celebration jump", sixseven: "6-7 hands",
+  wave: "Waving hello", "portal-in": "Leaves through a portal", "portal-out": "Arrives through a portal", fall: "Drops in", entrance: "Grand entrance",
+};
+const LABEL = s => ({ thumbsup: "Thumbs up", sixseven: "Six-seven", "portal-in": "Portal out", "portal-out": "Portal in" }[s] || s[0].toUpperCase() + s.slice(1).replace("-", " "));
+const big = document.getElementById("big");
+const btn = s => `<button data-s="${s}" aria-pressed="${s === "idle"}">${LABEL(s)}</button>`;
+document.getElementById("stateBtns").innerHTML = NX_STATES.map(btn).join("");
+document.getElementById("actionBtns").innerHTML = NX_ACTIONS.map(btn).join("");
+const card = s => `<div class="card"><nour-nx state="${s}"></nour-nx><b>${LABEL(s)}</b><span>${INFO[s] || ""}</span></div>`;
+document.getElementById("gridStates").innerHTML = NX_STATES.map(card).join("");
+document.getElementById("gridActions").innerHTML = NX_ACTIONS.map(card).join("");
+const setState = s => { big.state = s; document.querySelectorAll("[data-s]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s))); };
+document.querySelectorAll(".btns").forEach(g => g.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (b) { stopDemo(); setState(b.dataset.s); } }));
+document.getElementById("lvl").oninput = e => { if (big.state !== "speaking") setState("speaking"); big.level = +e.target.value; };
+let timers = [];
+const stopDemo = () => { timers.forEach(clearTimeout); timers = []; };
+document.getElementById("demo").onclick = () => {
+  stopDemo();
+  const seq = [["portal-out", 0], ["wave", 3000], ["listening", 5200], ["thinking", 7200], ["speaking", 9000], ["working", 12000], ["success", 14500], ["coffee", 16800], ["idle", 24000]];
+  seq.forEach(([s, t]) => timers.push(setTimeout(() => setState(s), t)));
+  for (let t = 9000; t < 12000; t += 90) timers.push(setTimeout(() => { big.level = Math.abs(Math.sin(t / 130)) * (0.4 + Math.random() * 0.6); }, t));
+};
+</script>
+</body>
+</html>

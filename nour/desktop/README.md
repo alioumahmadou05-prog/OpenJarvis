@@ -59,6 +59,16 @@ It respects `prefers-reduced-motion`.
 
 The user then chose their own design: a brown cartoon monkey standing upright, with round black shades and a black T-shirt with a white **"Nx"**. `src/renderer/cat/nour-monkey.ts` (`<nour-monkey>`) redraws it in vector form and uses the same state engine, effects and API as the cat. Its extras: it waves on success, scratches its head on error, and raises a hand while thinking. Its ears grow while listening, and the shades lift onto its head when it is happy or asleep (they are slightly see-through, so the eyes still show). The preview is in `preview/Nour Monkey.html`.
 
+### Nour Nx: the official character (the user's exact design)
+
+`src/renderer/character/nour-nx.ts` (`<nour-nx>`) is the user's own Nx monkey: a brown monkey standing upright, with round black shades and a black T-shirt with a white "Nx". It is **traced 1:1 from the user's picture** with potrace, so it looks exactly like it, with no restyling. It is split into moving parts: head, both arms (back and front copies, so a raised arm can pass in front of the body), legs, tail, and separate sunglasses (the face under them is filled in, so the glasses can come off).
+
+- **9 assistant states:** sleeping, idle, listening (hand to ear), thinking (hand on chin), speaking (mouth follows `level`), working (laptop), success (arms up and jump), error (head scratch, crooked glasses), translating.
+- **20 fun actions, in the spirit of Dexter's** (original choreography, no Dexter assets): walk, coffee, glasses (takes them off and cleans them), reading, phone, clipboard, idea, confused, sad, angry, thumbs up, waiting (watch), dance, celebrate, six-seven, wave, portal in and out, fall, entrance.
+- **`autoplay`:** an idle Nour plays a random fun action every 20 to 40 seconds. `el.play("coffee")` plays one action and then returns to the previous state.
+- **Regenerating:** `scripts/character/` holds the tracer (`parts.py`, `trace2.py`) and the generator (`gen_nx.py`). The reference image itself is not committed.
+- **Preview:** `preview/Nour Nx.html`.
+
 ### Build and preview
 
 ```bash

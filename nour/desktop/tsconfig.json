@@ -9,5 +9,5 @@
     "declaration": false,
     "skipLibCheck": true
   },
-  "include": ["src/renderer/cat/**/*.ts"]
+  "include": ["src/renderer/cat/**/*.ts", "src/renderer/character/**/*.ts"]
 }
