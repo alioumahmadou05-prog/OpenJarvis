@@ -1,5 +1,6 @@
 """Generate src/renderer/character/nour-nx.ts: the user's Nx monkey, traced 1:1, rigged and animated."""
 import json, sys, math
+from arms import arm_markup, ARM_CSS, all_pose_css
 
 T = json.load(open("monkey-trace2.json"))
 BB = T["bbox"]
@@ -92,7 +93,6 @@ SVG = f'''
   <defs>
     <radialGradient id="aura" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient>
     <clipPath id="floor"><rect x="0" y="0" width="1254" height="1082"/></clipPath>
-    <g id="art-armL">{art(P["armL"])}</g><g id="art-armR">{art(P["armR"])}</g>
   </defs>
   <ellipse class="aura" cx="611" cy="700" rx="380" ry="420" fill="url(#aura)"/>
   <ellipse class="shadow" cx="611" cy="1080" rx="170" ry="18"/>
@@ -101,13 +101,14 @@ SVG = f'''
     {grp("tail", "tail", art(P["tail"]))}
     {grp("legL", "legL", art(P["legL"]))}
     {grp("legR", "legR", art(P["legR"]))}
-    {arm("armL", "armL")}
-    {arm("armR", "armR")}
+    {arm_markup("L", "armL", traced=art(P["armL"]))}
+    {arm_markup("R", "armR", traced=art(P["armR"]))}
     {grp("torso", "torso", art(P["torso"]))}
+    <path class="teL" d="M492 792 L 490 860 L 496 926"/><path class="teR" d="M728 792 L 738 860 L 733 930"/>
     {grp("head", "head", head_inner, (300, 240, 922, 702))}
     {BOOK}{LAPTOP}{CLOTH}
-    {arm("armLF", "armL", CLIP + WATCH)}
-    {arm("armRF", "armR", MUG + PHONE + THUMB + PEN)}
+    {arm_markup("L", "armLF", CLIP + WATCH)}
+    {arm_markup("R", "armRF", MUG + PHONE + THUMB + PEN)}
     {EFFECTS}
   </g></g>
 </svg>'''
@@ -140,7 +141,6 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 .flush {{ mix-blend-mode: multiply; }}
 .x {{ opacity: 0; transition: opacity .25s ease; }}
 .eyes {{ opacity: 0; transition: opacity .2s; }}
-.armLF, .armRF {{ opacity: 0; }}
 .portal {{ fill: none; stroke: var(--accent); stroke-width: 10; filter: drop-shadow(0 0 14px var(--accent)); transform-origin: 50% 50%; }}
 .fx text {{ font: 800 56px/1 "Inter", system-ui, sans-serif; fill: #c8d3f5; }}
 .zzz text {{ fill: #a9b8e6; animation: zfloat 3s ease-in-out infinite; }} .zzz .z2 {{ animation-delay: .8s; }} .zzz .z3 {{ animation-delay: 1.6s; }}
@@ -170,7 +170,6 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 .torso {{ animation: breathe 3.6s ease-in-out infinite; }}
 .head {{ animation: bob 3.6s ease-in-out infinite; }}
 .tail {{ animation: sway 3.2s ease-in-out infinite; }}
-.armL {{ animation: armIdle 3.6s ease-in-out infinite; }} .armR {{ animation: armIdle 3.6s ease-in-out -1.8s infinite; }}
 
 /* ---------- assistant states ---------- */
 {S("sleeping", ".head")} {{ animation: none; transform: translateY(14px) rotate(9deg); }}
@@ -180,35 +179,26 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 {show("sleeping", "zzz")}
 
 {S(["listening", "translating"], ".head")} {{ animation: none; transform: rotate(-6deg); }}
-{S("listening", ".armL")} {{ opacity: 0; }}
-{S("listening", ".armLF")} {{ opacity: 1; animation: none; transform: rotate(160deg); }}
 {show("listening", "waves", "mcover", "mO")}
 
 {S("thinking", ".head")} {{ animation: none; transform: rotate(5deg); }}
-{S("thinking", ".armR")} {{ opacity: 0; }}
-{S("thinking", ".armRF")} {{ opacity: 1; transform: rotate(124deg); }}
 {show("thinking", "thought", "bRaise")}
 
 {S("speaking", ".head")} {{ animation: nod 2.2s ease-in-out infinite; }}
 {S("speaking", ".mOpen")} {{ animation: talk .34s ease-in-out infinite alternate; }}
 :host([state="speaking"][data-live]) .mOpen {{ animation: none; transform: scaleY(var(--mouth)); }}
-{S("speaking", ".armR")} {{ animation: gesture 2.6s ease-in-out infinite; }}
 {show("speaking", "mcover", "mOpen")}
 
 {S("working", ".head")} {{ animation: none; transform: translateY(6px) rotate(-3deg); }}
-{S("working", ".armL")}, {S("working", ".armR")} {{ opacity: 0; }}
 {show("working", "laptop")}
 .typing .kL {{ animation: key .26s ease-in-out infinite alternate; transform-origin: 50% 100%; }} .typing .kR {{ animation: key .26s ease-in-out infinite alternate-reverse; transform-origin: 50% 100%; }}
 .laptop .logo {{ animation: glow 1.4s ease-in-out infinite; }}
 
 {S("success", ".rig")} {{ animation: hop 1.1s cubic-bezier(.3,.7,.4,1) infinite; }}
-{S("success", ".armL")} {{ opacity: 0; }} {S("success", ".armR")} {{ opacity: 0; }}
-{S("success", ".armLF")} {{ opacity: 1; transform: rotate(150deg); }} {S("success", ".armRF")} {{ opacity: 1; transform: rotate(-150deg); }}
 {show("success", "mcover", "mSmile", "sparkles")}
 
 {S("error", ".head")} {{ animation: shake .45s ease-in-out 3; }}
 {S("error", ".glasses")} {{ transform: translateY(10px) rotate(-8deg); }}
-{S("error", ".armL")} {{ opacity: 0; }} {S("error", ".armLF")} {{ opacity: 1; animation: scratch .5s ease-in-out infinite alternate; }}
 {S("error", ".tail")} {{ animation: none; transform: rotate(20deg); }}
 {show("error", "mcover", "mFrown", "bWorry", "sweat")}
 
@@ -218,91 +208,59 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 /* ---------- Dex-style actions (original choreography) ---------- */
 {S("walk", ".rig")} {{ animation: stepBob .6s ease-in-out infinite; }}
 {S("walk", ".legL")} {{ animation: legSwing .6s ease-in-out infinite; }} {S("walk", ".legR")} {{ animation: legSwing .6s ease-in-out -.3s infinite; }}
-{S("walk", ".armL")} {{ animation: armSwing .6s ease-in-out -.3s infinite; }} {S("walk", ".armR")} {{ animation: armSwing .6s ease-in-out infinite; }}
 {S("walk", ".tail")} {{ animation-duration: 1.2s; }}
 
-{S("coffee", ".armR")} {{ opacity: 0; }}
-{S("coffee", ".armRF")} {{ opacity: 1; animation: sipArm 4s ease-in-out infinite; }}
-{S("coffee", ".mug")} {{ opacity: 1; animation: sipMug 4s ease-in-out infinite; }}
 {S("coffee", ".head")} {{ animation: sipHead 4s ease-in-out infinite; }}
 .mug .steam {{ animation: puff 1.6s ease-out infinite; }}
 
 {S("glasses", ".glasses")} {{ animation: glassesOff 6s ease-in-out infinite; }}
 {S("glasses", ".eyes")} {{ animation: eyesShow 6s ease-in-out infinite; }}
-{S("glasses", ".armL")}, {S("glasses", ".armR")} {{ opacity: 0; }}
-{S("glasses", ".armLF")} {{ opacity: 1; animation: holdL 6s ease-in-out infinite; }} {S("glasses", ".armRF")} {{ opacity: 1; animation: holdR 6s ease-in-out infinite; }}
 {S("glasses", ".cloth")} {{ animation: cloth 6s ease-in-out infinite; }}
 
-{S("reading", ".armL")}, {S("reading", ".armR")} {{ opacity: 0; }}
-{S("reading", ".armLF")} {{ opacity: 1; transform: rotate(-38deg); }} {S("reading", ".armRF")} {{ opacity: 1; transform: rotate(38deg); }}
 {S("reading", ".head")} {{ animation: none; transform: translateY(8px) rotate(4deg); }}
 {show("reading", "book")}
 .book .page {{ transform-origin: 100% 50%; animation: flip 3s ease-in-out infinite; }}
 
-{S("phone", ".armR")} {{ opacity: 0; }}
-{S("phone", ".armRF")} {{ opacity: 1; transform: rotate(58deg); }}
-{S("phone", ".phone")} {{ opacity: 1; transform: rotate(-58deg); }}
 {S("phone", ".head")} {{ animation: none; transform: translateY(8px) rotate(5deg); }}
 .phone .scroll {{ animation: scrollUp 1.4s linear infinite; }}
 
-{S("clipboard", ".armL")}, {S("clipboard", ".armR")} {{ opacity: 0; }}
-{S("clipboard", ".armLF")} {{ opacity: 1; transform: rotate(-48deg); }} {S("clipboard", ".clip")} {{ opacity: 1; transform: rotate(48deg); }}
-{S("clipboard", ".armRF")} {{ opacity: 1; animation: penTap .5s ease-in-out infinite alternate; }} {S("clipboard", ".pen")} {{ opacity: 1; transform: rotate(-40deg); }}
 {S("clipboard", ".head")} {{ animation: none; transform: translateY(6px) rotate(-4deg); }}
 .clip .tick {{ animation: glow 1s ease-in-out infinite; }}
 
-{S("idea", ".armR")} {{ opacity: 0; }}
-{S("idea", ".armRF")} {{ opacity: 1; animation: pointUp 1s ease-in-out infinite alternate; }}
 {S("idea", ".bulb")} {{ opacity: 1; animation: pop .6s cubic-bezier(.3,1.6,.5,1) both; }}
 .bulb .rays {{ animation: glow .9s ease-in-out infinite; }}
 {show("idea", "bRaise", "mcover", "mSmile")}
 
 {S("confused", ".head")} {{ animation: tilt 2.4s ease-in-out infinite; }}
-{S("confused", ".armL")} {{ opacity: 0; }} {S("confused", ".armLF")} {{ opacity: 1; animation: scratch .5s ease-in-out infinite alternate; }}
 {show("confused", "qmarks", "bRaise", "mcover", "mFlat")}
 
 {S("sad", ".head")} {{ animation: none; transform: translateY(16px) rotate(-6deg); }}
 {S("sad", ".rig")} {{ transform: scaleY(.97); }}
 {S("sad", ".tail")} {{ animation: none; transform: rotate(28deg); }}
-{S("sad", ".armL")} {{ animation: none; transform: rotate(-6deg); }} {S("sad", ".armR")} {{ animation: none; transform: rotate(6deg); }}
 {show("sad", "bWorry", "mcover", "mFrown", "tear")}
 :host([state="sad"]) .tear {{ animation: drip 2s ease-in infinite; }}
 
 {S("angry", ".rig")} {{ animation: stomp .5s ease-in-out infinite; }}
 {S("angry", ".flush")} {{ animation: flush 1.2s ease-in-out infinite; }}
-{S("angry", ".armL")} {{ animation: none; transform: rotate(12deg); }} {S("angry", ".armR")} {{ animation: none; transform: rotate(-12deg); }}
 {show("angry", "bAngry", "mcover", "mFlat", "steam")}
 
-{S("thumbsup", ".armR")} {{ opacity: 0; }}
-{S("thumbsup", ".armRF")} {{ opacity: 1; animation: thumbArm 1.6s cubic-bezier(.3,1.4,.5,1) infinite alternate; }}
-{S("thumbsup", ".thumb")} {{ opacity: 1; animation: thumbProp 1.6s cubic-bezier(.3,1.4,.5,1) infinite alternate; }}
 {show("thumbsup", "mcover", "mSmile")}
 
-{S("waiting", ".armL")} {{ opacity: 0; }}
-{S("waiting", ".armLF")} {{ opacity: 1; transform: rotate(-72deg); }} {S("waiting", ".watch")} {{ opacity: 1; transform: rotate(72deg); }}
 {S("waiting", ".legR")} {{ animation: tap .4s ease-in-out infinite alternate; }}
 {S("waiting", ".head")} {{ animation: checkWatch 4s ease-in-out infinite; }}
 .watch .hand {{ transform-origin: 50% 100%; animation: spin 2s linear infinite; }}
 {show("waiting", "dots3", "mcover", "mFlat")}
 
 {S("dance", ".rig")} {{ animation: groove .8s ease-in-out infinite; }}
-{S("dance", ".armL")}, {S("dance", ".armR")} {{ opacity: 0; }}
-{S("dance", ".armLF")} {{ opacity: 1; animation: danceL .8s ease-in-out infinite; }} {S("dance", ".armRF")} {{ opacity: 1; animation: danceR .8s ease-in-out infinite; }}
 {S("dance", ".legL")} {{ animation: kick .8s ease-in-out infinite; }} {S("dance", ".legR")} {{ animation: kick .8s ease-in-out -.4s infinite; }}
 {show("dance", "notes", "mcover", "mSmile")}
 
 {S("celebrate", ".rig")} {{ animation: bigJump 1.6s cubic-bezier(.3,.7,.4,1) infinite; }}
-{S("celebrate", ".armL")}, {S("celebrate", ".armR")} {{ opacity: 0; }}
-{S("celebrate", ".armLF")} {{ opacity: 1; animation: spreadL 1.6s ease-in-out infinite; }} {S("celebrate", ".armRF")} {{ opacity: 1; animation: spreadR 1.6s ease-in-out infinite; }}
 {show("celebrate", "burst", "mcover", "mSmile", "sparkles")}
 
-{S("sixseven", ".armL")}, {S("sixseven", ".armR")} {{ opacity: 0; }}
-{S("sixseven", ".armLF")} {{ opacity: 1; animation: scaleL .7s ease-in-out infinite; }} {S("sixseven", ".armRF")} {{ opacity: 1; animation: scaleR .7s ease-in-out infinite; }}
 {S("sixseven", ".head")} {{ animation: bounceHead .35s ease-in-out infinite alternate; }}
 {show("sixseven", "mcover", "mO")}
 
-{S("wave", ".armR")} {{ opacity: 0; }}
-{S("wave", ".armRF")} {{ opacity: 1; animation: waveArm .5s ease-in-out infinite alternate; }}
 {show("wave", "mcover", "mSmile")}
 
 {S("portal-in", ".rig")} {{ animation: sink 3s ease-in infinite; }}
@@ -318,19 +276,16 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 @keyframes breathe {{ 50% {{ transform: scaleY(1.012); }} }}
 @keyframes bob {{ 50% {{ transform: translateY(-3px) rotate(.6deg); }} }}
 @keyframes sway {{ 0%, 100% {{ transform: rotate(-4deg); }} 50% {{ transform: rotate(6deg); }} }}
-@keyframes armIdle {{ 0%, 100% {{ transform: rotate(1.2deg); }} 50% {{ transform: rotate(-1.2deg); }} }}
 @keyframes zfloat {{ 0% {{ opacity: 0; transform: translate(0, 20px); }} 30% {{ opacity: 1; }} 100% {{ opacity: 0; transform: translate(26px, -36px); }} }}
 @keyframes wv {{ 0% {{ opacity: 0; }} 30% {{ opacity: 1; }} 100% {{ opacity: 0; }} }}
 @keyframes dot {{ 0%, 100% {{ transform: translateY(0); opacity: .5; }} 50% {{ transform: translateY(-10px); opacity: 1; }} }}
 @keyframes talk {{ from {{ transform: scaleY(.2); }} to {{ transform: scaleY(1); }} }}
 @keyframes nod {{ 0%, 100% {{ transform: rotate(0); }} 30% {{ transform: rotate(2deg) translateY(-2px); }} 70% {{ transform: rotate(-2deg); }} }}
-@keyframes gesture {{ 0%, 100% {{ transform: rotate(0); }} 40% {{ transform: rotate(-28deg); }} 60% {{ transform: rotate(-18deg); }} }}
 @keyframes key {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-12px); }} }}
 @keyframes glow {{ 50% {{ opacity: .4; }} }}
 @keyframes hop {{ 0%, 100% {{ transform: translateY(0) scale(1, 1); }} 12% {{ transform: scale(1.03, .96); }} 40% {{ transform: translateY(-46px) scale(.98, 1.02); }} 70% {{ transform: translateY(0) scale(1.03, .97); }} }}
 @keyframes tw {{ 0%, 100% {{ transform: scale(.4) rotate(0); opacity: .3; }} 50% {{ transform: scale(1.1) rotate(25deg); opacity: 1; }} }}
 @keyframes shake {{ 0%, 100% {{ transform: translateX(0); }} 25% {{ transform: translateX(-10px) rotate(-2deg); }} 75% {{ transform: translateX(10px) rotate(2deg); }} }}
-@keyframes scratch {{ from {{ transform: rotate(168deg); }} to {{ transform: rotate(178deg); }} }}
 @keyframes look {{ 0%, 100% {{ transform: rotate(-5deg); }} 50% {{ transform: rotate(5deg); }} }}
 @keyframes bub {{ 0%, 100% {{ transform: scale(.85); opacity: .55; }} 50% {{ transform: scale(1.06); opacity: 1; }} }}
 @keyframes dash {{ to {{ stroke-dashoffset: -60; }} }}
@@ -339,39 +294,23 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 @keyframes drip {{ 0% {{ transform: translateY(-6px); opacity: 0; }} 20% {{ opacity: 1; }} 100% {{ transform: translateY(30px); opacity: 0; }} }}
 @keyframes stepBob {{ 0%, 50%, 100% {{ transform: translateY(0); }} 25%, 75% {{ transform: translateY(-12px); }} }}
 @keyframes legSwing {{ 0%, 100% {{ transform: rotate(12deg); }} 50% {{ transform: rotate(-12deg); }} }}
-@keyframes armSwing {{ 0%, 100% {{ transform: rotate(14deg); }} 50% {{ transform: rotate(-14deg); }} }}
-@keyframes sipArm {{ 0%, 25% {{ transform: rotate(92deg); }} 40%, 62% {{ transform: rotate(132deg); }} 78%, 100% {{ transform: rotate(92deg); }} }}
-@keyframes sipMug {{ 0%, 25% {{ transform: rotate(-92deg); }} 40%, 62% {{ transform: rotate(-112deg); }} 78%, 100% {{ transform: rotate(-92deg); }} }}
 @keyframes sipHead {{ 0%, 25%, 78%, 100% {{ transform: rotate(0); }} 40%, 62% {{ transform: rotate(-5deg) translateY(-2px); }} }}
 @keyframes glassesOff {{ 0%, 12% {{ transform: translate(0, 0); }} 26%, 74% {{ transform: translate(0, 318px) scale(.92); }} 88%, 100% {{ transform: translate(0, 0); }} }}
 @keyframes eyesShow {{ 0%, 16% {{ opacity: 0; }} 22%, 80% {{ opacity: 1; }} 84%, 100% {{ opacity: 0; }} }}
-@keyframes holdL {{ 0%, 10% {{ transform: rotate(0); }} 16% {{ transform: rotate(150deg); }} 26%, 74% {{ transform: rotate(-36deg); }} 82% {{ transform: rotate(150deg); }} 92%, 100% {{ transform: rotate(0); }} }}
-@keyframes holdR {{ 0%, 10% {{ transform: rotate(0); }} 16% {{ transform: rotate(-150deg); }} 26%, 74% {{ transform: rotate(36deg); }} 82% {{ transform: rotate(-150deg); }} 92%, 100% {{ transform: rotate(0); }} }}
 @keyframes cloth {{ 0%, 26% {{ opacity: 0; transform: translateX(0); }} 30% {{ opacity: 1; transform: translateX(-40px); }} 38% {{ transform: translateX(40px); }} 46% {{ transform: translateX(-40px); }} 54% {{ transform: translateX(40px); }} 62% {{ transform: translateX(-40px); }} 70% {{ opacity: 1; transform: translateX(40px); }} 74%, 100% {{ opacity: 0; }} }}
 @keyframes flip {{ 0%, 70% {{ transform: scaleX(1); }} 85% {{ transform: scaleX(-1); }} 100% {{ transform: scaleX(-1); opacity: 0; }} }}
 @keyframes scrollUp {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-12px); }} }}
-@keyframes penTap {{ from {{ transform: rotate(40deg); }} to {{ transform: rotate(48deg); }} }}
-@keyframes pointUp {{ from {{ transform: rotate(-160deg); }} to {{ transform: rotate(-170deg); }} }}
 @keyframes pop {{ from {{ transform: scale(0); }} to {{ transform: scale(1); }} }}
 @keyframes tilt {{ 0%, 100% {{ transform: rotate(-7deg); }} 50% {{ transform: rotate(7deg); }} }}
 @keyframes stomp {{ 0%, 100% {{ transform: translateY(0); }} 50% {{ transform: translateY(-8px) rotate(1deg); }} }}
 @keyframes flush {{ 0%, 100% {{ opacity: .18; }} 50% {{ opacity: .34; }} }}
-@keyframes thumbArm {{ from {{ transform: rotate(-92deg); }} to {{ transform: rotate(-112deg); }} }}
-@keyframes thumbProp {{ from {{ transform: rotate(92deg); }} to {{ transform: rotate(112deg); }} }}
 @keyframes tap {{ from {{ transform: rotate(0); }} to {{ transform: rotate(-9deg); }} }}
 @keyframes checkWatch {{ 0%, 40%, 100% {{ transform: rotate(0); }} 55%, 80% {{ transform: rotate(-8deg) translateY(6px); }} }}
 @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
 @keyframes groove {{ 0%, 100% {{ transform: translateY(0) rotate(-5deg); }} 25% {{ transform: translateY(-16px) rotate(0); }} 50% {{ transform: translateY(0) rotate(5deg); }} 75% {{ transform: translateY(-16px) rotate(0); }} }}
-@keyframes danceL {{ 0%, 100% {{ transform: rotate(150deg); }} 50% {{ transform: rotate(40deg); }} }}
-@keyframes danceR {{ 0%, 100% {{ transform: rotate(-40deg); }} 50% {{ transform: rotate(-150deg); }} }}
 @keyframes kick {{ 0%, 100% {{ transform: rotate(0); }} 50% {{ transform: rotate(-14deg); }} }}
 @keyframes bigJump {{ 0%, 100% {{ transform: translateY(0) scale(1, 1); }} 15% {{ transform: scale(1.05, .93); }} 45% {{ transform: translateY(-120px) scale(.97, 1.04); }} 75% {{ transform: translateY(0) scale(1.06, .94); }} 85% {{ transform: scale(1, 1); }} }}
-@keyframes spreadL {{ 0%, 15%, 85%, 100% {{ transform: rotate(20deg); }} 40%, 70% {{ transform: rotate(120deg); }} }}
-@keyframes spreadR {{ 0%, 15%, 85%, 100% {{ transform: rotate(-20deg); }} 40%, 70% {{ transform: rotate(-120deg); }} }}
-@keyframes scaleL {{ 0%, 100% {{ transform: rotate(-64deg) translateY(-14px); }} 50% {{ transform: rotate(-44deg) translateY(14px); }} }}
-@keyframes scaleR {{ 0%, 100% {{ transform: rotate(44deg) translateY(14px); }} 50% {{ transform: rotate(64deg) translateY(-14px); }} }}
 @keyframes bounceHead {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-8px); }} }}
-@keyframes waveArm {{ from {{ transform: rotate(-150deg); }} to {{ transform: rotate(-118deg); }} }}
 @keyframes sink {{ 0%, 20% {{ transform: translateY(0); }} 75%, 100% {{ transform: translateY(860px); }} }}
 @keyframes rise {{ 0%, 25% {{ transform: translateY(860px); }} 80%, 100% {{ transform: translateY(0); }} }}
 @keyframes portal {{ 0% {{ transform: scale(0, 0); }} 15% {{ transform: scale(1, 1); }} 80% {{ transform: scale(1, 1); }} 100% {{ transform: scale(0, 0); }} }}
@@ -380,6 +319,7 @@ svg {{ width: 100%; height: 100%; display: block; overflow: visible; }}
 @keyframes hero {{ 0% {{ transform: scale(0) rotate(-20deg); }} 35% {{ transform: scale(1) rotate(0); }} 100% {{ transform: scale(1); }} }}
 @keyframes heroFx {{ 0%, 25% {{ opacity: 0; }} 40% {{ opacity: 1; }} 70%, 100% {{ opacity: 0; }} }}
 
+''' + ARM_CSS + all_pose_css() + f'''
 @media (prefers-reduced-motion: reduce) {{ *, *::before, *::after {{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }} }}
 '''
 

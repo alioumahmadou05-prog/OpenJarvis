@@ -72,7 +72,7 @@ def layers_for(m, c):
 raw = part_masks((H, W)); out = {"parts": {}, "bbox": {}}
 for part, m in raw.items():
     md = dilate(m, 3) & char
-    if part == "head": md = md  # head uses the inpainted (no-glasses) face
+    if part == "torso": md &= ~(raw["armL"] | raw["armR"])   # arms are redrawn as vector limbs
     out["parts"][part] = layers_for(md, cls if part == "head" else cls_src)
     ys, xs = np.where(md); out["bbox"][part] = [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
 # sunglasses: ink frame + white glints from the original pixels
