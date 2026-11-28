@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nour</title>
+<style>
+  :root { --bg: #000; --dim: #6f7896; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  html.transparent, html.transparent body { background: transparent; }
+  body { display: grid; place-items: center; font: 13px/1.4 "Inter", system-ui, -apple-system, sans-serif; }
+  nour-sprite { width: min(62vh, 78vw); cursor: pointer; -webkit-user-select: none; user-select: none; }
+  nour-sprite:focus-visible { outline: none; }
+  #hint { position: fixed; left: 0; right: 0; bottom: 18px; text-align: center; color: var(--dim); transition: opacity .8s; padding: 0 16px; }
+  #hint.off { opacity: 0; }
+  #hint kbd { font: inherit; color: #c6cde4; }
+</style>
+</head>
+<body>
+<nour-sprite id="nour" state="idle" tabindex="0" aria-label="Nour. Click to talk."></nour-sprite>
+<div id="hint" aria-live="polite">Click Nour to talk · keys <kbd>1</kbd>–<kbd>0</kbd> and <kbd>E</kbd> change the animation · <kbd>H</kbd> shows this again</div>
+<script type="module">
+/*__VOICE__*/
+/*__SPRITE__*/
+const ATLAS = /*__ATLAS__*/null;
+const URLS = /*__URLS__*/null;
+if (new URLSearchParams(location.search).has("transparent")) document.documentElement.classList.add("transparent");
+const nour = document.getElementById("nour"), voice = new NourVoice();
+await nour.load(ATLAS, URLS);
+
+const LINES = [
+  "Hey, it's Nour. I'm ready when you are.", "Okay, that was actually a smart question. I'm impressed. A little.",
+  "Salut, c'est Nour. Je suis prêt quand tu veux.", "Franchement, bonne question. Je suis presque impressionné.",
+];
+let talking = false;
+const talk = async () => { if (talking) { voice.stop(); return; } talking = true; await nour.say(LINES[Math.floor(Math.random() * LINES.length)], voice); talking = false; };
+nour.addEventListener("click", talk);
+
+const KEYS = { "1": "idle", "2": "listening", "3": "thinking", "4": "speaking", "5": "walking", "6": "running", "7": "dancing", "8": "sleeping", "9": "waving", "0": "celebrating", e: "error" };
+const hint = document.getElementById("hint"); let hintT = setTimeout(() => hint.classList.add("off"), 6000);
+document.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if (k === "h") { hint.classList.remove("off"); clearTimeout(hintT); hintT = setTimeout(() => hint.classList.add("off"), 6000); return; }
+  if (k === " " || k === "enter") { e.preventDefault(); talk(); return; }
+  if (KEYS[k]) { if (KEYS[k] === "speaking") { talk(); return; } nour.wake(); nour.state = KEYS[k]; }
+});
+
+// a little life on its own: now and then, an idle Nour waves, dances or takes a few steps
+const FUN = [["waving", 0], ["dancing", 4800], ["walking", 3200], ["celebrating", 0]];
+(function life() {
+  setTimeout(() => {
+    if (nour.state === "idle" && !talking) {
+      const [s, ms] = FUN[Math.floor(Math.random() * FUN.length)]; nour.state = s;
+      if (ms) setTimeout(() => { if (nour.state === s) nour.state = "idle"; }, ms);
+    }
+    life();
+  }, 22000 + Math.random() * 18000);
+})();
+</script>
+</body>
+</html>

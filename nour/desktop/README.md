@@ -69,6 +69,42 @@ The user then chose their own design: a brown cartoon monkey standing upright, w
 - **Regenerating:** `scripts/character/` holds the tracer (`parts.py`, `trace2.py`) and the generator (`gen_nx.py`). The reference image itself is not committed.
 - **Preview:** `preview/Nour Nx.html`.
 
+### Sprite-sheet animation (frame by frame)
+
+Nour's monkey is played from **pre-rendered sprite sheets**, not live CSS transforms.
+
+- **Frames.** `scripts/sprites/poses.js` defines every frame of 11 sequences, using ease in and out, overlapping action (the head and tail lag the body), squash and stretch on contacts, anticipation before jumps, and secondary motion on effects. `scripts/sprites/render.cjs` poses the rig (`<nour-nx>`, traced 1:1 from the user's picture) for each frame and captures it as a transparent PNG. It also renders 5 mouth visemes and records the mouth position and angle for every `speaking` frame.
+- **Sheets.** `scripts/sprites/pack.py` crops all frames to a shared box and packs one WebP sheet per sequence, plus `atlas.json`, into `assets/sprites/nx/` (320 frames, 348×423 px, about 6 MB).
+
+| Sequence | Frames | fps | Notes |
+|---|---|---|---|
+| idle | 48 | 20 | breathing, weight shift, lagging head and tail |
+| listening | 32 | 20 | hand to ear, head tilt, sound waves |
+| thinking | 40 | 20 | hand on chin with finger taps, thought dots |
+| speaking | 24 | 20 | gestures; the mouth is a live viseme overlay |
+| walking | 16 | 20 | leg swing, bob on passing, counter-swinging arms |
+| running | 12 | 24 | forward lean, pumping arms, squash on contact |
+| dancing | 32 | 20 | bounce on the beat, alternating arms, kicks, notes |
+| sleeping | 36 | 12 | slow deep breathing, drifting Z's |
+| waving | 20 | 20 | forearm wave from the elbow |
+| celebrating | 32 | 20 | anticipation crouch, jump, hang, landing squash |
+| error | 28 | 20 | head scratch, crooked shades, sweat drop |
+
+**Runtime.** `src/renderer/sprite/nour-sprite.ts` (`<nour-sprite>`) is the player. It draws one transparent canvas, plays each sequence at its own fps with seamless loops, and cross-fades between sequences (180 ms).
+
+- **Voice-synced mouth.** The mouth picks `closed`, `small`, `mid` or `wide` from the live `level`, from the speech word events, or from a natural chatter fallback, and draws it on that frame's anchor.
+- **Automatic switching.** `waving`, `celebrating` and `error` return to `idle` by themselves. `say(text, voice)` switches to `speaking` and back. An idle Nour falls asleep after `sleepAfter` ms (90 s by default), and any activity wakes it.
+
+**Rebuilding.**
+
+```bash
+tsc -p .
+node scripts/sprites/render.cjs
+node scripts/build-preview.mjs
+```
+
+The last command writes the standalone `preview/Nour Nx.html`: one transparent monkey, with no grids or boxes. Add `?transparent` for a floating window.
+
 ### Build and preview
 
 ```bash

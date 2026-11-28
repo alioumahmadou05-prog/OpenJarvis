@@ -16,5 +16,20 @@ writeFileSync("preview/Nour Monkey.html", monkey.replace("/*__CAT__*/", () => in
 console.log("previews written");
 
 const nxTpl = readFileSync("preview/nx-preview.template.html", "utf8");
-writeFileSync("preview/Nour Nx.html", nxTpl.replace("/*__VOICE__*/", () => inline("build/renderer/voice/nour-voice.js")).replace("/*__NX__*/", () => inline("build/renderer/character/nour-nx.js")));
-console.log("Nour Nx preview written");
+writeFileSync("build/rig-preview.html", nxTpl.replace("/*__VOICE__*/", () => inline("build/renderer/voice/nour-voice.js")).replace("/*__NX__*/", () => inline("build/renderer/character/nour-nx.js")));
+console.log("rig preview written (build/)");
+
+// ---- the sprite-sheet monkey (replaces the old CSS preview of the Nx monkey)
+import { existsSync } from "node:fs";
+if (existsSync("assets/sprites/nx/atlas.json")) {
+  const atlas = JSON.parse(readFileSync("assets/sprites/nx/atlas.json", "utf8"));
+  const sheets = [...Object.values(atlas.sequences).map(s => s.sheet), atlas.mouth.sheet];
+  const urls = Object.fromEntries(sheets.map(s => [s, "data:image/webp;base64," + readFileSync("assets/sprites/nx/" + s).toString("base64")]));
+  const sp = readFileSync("preview/sprite-preview.template.html", "utf8")
+    .replace("/*__VOICE__*/", () => inline("build/renderer/voice/nour-voice.js"))
+    .replace("/*__SPRITE__*/", () => inline("build/renderer/sprite/nour-sprite.js"))
+    .replace("/*__ATLAS__*/null", () => JSON.stringify(atlas))
+    .replace("/*__URLS__*/null", () => JSON.stringify(urls));
+  writeFileSync("preview/Nour Nx.html", sp);
+  console.log("sprite preview written:", (sp.length / 1048576).toFixed(1), "MB");
+}
