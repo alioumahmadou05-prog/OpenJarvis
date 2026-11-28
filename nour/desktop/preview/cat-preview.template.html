@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nour Cat</title>
+<style>
+  :root { --bg: #04060d; --panel: #0a1022; --line: #1a2444; --text: #e8edff; --dim: #8a96bd; --accent: #46d7ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(1200px 600px at 50% -10%, #0d1838 0%, var(--bg) 60%); color: var(--text); font: 15px/1.5 "Inter", system-ui, -apple-system, sans-serif; min-height: 100vh; }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 16px 60px; }
+  h1 { font-weight: 300; letter-spacing: .32em; margin: 0; font-size: 22px; }
+  p.sub { color: var(--dim); margin: 4px 0 24px; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+  .stage nour-cat { width: min(340px, 100%); justify-self: center; }
+  .ctl { display: grid; gap: 8px; }
+  .ctl .lbl { color: var(--dim); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; margin-top: 6px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { background: #0f1830; color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 13px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--text); color: #050815; border-color: var(--text); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px 10px 10px; text-align: center; }
+  .card nour-cat { width: 150px; }
+  .card b { display: block; font-weight: 500; margin-top: 4px; }
+  .card span { color: var(--dim); font-size: 12.5px; }
+  @media (max-width: 720px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>NOUR · CAT</h1>
+  <p class="sub">Phase 1 · Nour's original animated cat, with 9 states. Move your mouse: in Idle, its eyes follow you.</p>
+
+  <section class="stage">
+    <nour-cat id="big" state="idle"></nour-cat>
+    <div class="ctl">
+      <div class="lbl">State</div>
+      <div class="btns" id="stateBtns"></div>
+      <div class="lbl">Fur</div>
+      <div class="btns"><button data-fur="white" aria-pressed="true">White</button><button data-fur="black" aria-pressed="false">Black</button></div>
+      <div class="lbl">Voice level (lip-sync test)</div>
+      <input type="range" id="lvl" min="0" max="1" step="0.01" value="0" aria-label="Voice level">
+      <button id="demo">Play a demo conversation</button>
+    </div>
+  </section>
+
+  <section class="grid" id="grid"></section>
+</main>
+<script type="module">
+/*__CAT__*/
+const INFO = {
+  sleeping: "Nour is asleep (say “Nour”)", idle: "Waiting, eyes follow you", listening: "Ears up, hearing you",
+  thinking: "Working out the answer", speaking: "Talking, mouth follows the voice", working: "Doing a task on your Mac",
+  success: "Task done and checked", error: "Something went wrong", translating: "Live translation",
+};
+const big = document.getElementById("big");
+const LABEL = s => s[0].toUpperCase() + s.slice(1);
+document.getElementById("stateBtns").innerHTML = CAT_STATES.map(s => `<button data-s="${s}" aria-pressed="${s === "idle"}">${LABEL(s)}</button>`).join("");
+document.getElementById("grid").innerHTML = CAT_STATES.map(s => `<div class="card"><nour-cat state="${s}"></nour-cat><b>${LABEL(s)}</b><span>${INFO[s]}</span></div>`).join("");
+const setState = s => { big.state = s; document.querySelectorAll("[data-s]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s))); };
+document.getElementById("stateBtns").onclick = e => { const b = e.target.closest("[data-s]"); if (b) { stopDemo(); setState(b.dataset.s); } };
+document.querySelectorAll("[data-fur]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nour-cat").forEach(c => c.fur = b.dataset.fur);
+  document.querySelectorAll("[data-fur]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+});
+document.getElementById("lvl").oninput = e => { if (big.state !== "speaking") setState("speaking"); big.level = +e.target.value; };
+let timers = [];
+const stopDemo = () => { timers.forEach(clearTimeout); timers = []; };
+document.getElementById("demo").onclick = () => {
+  stopDemo();
+  const seq = [["sleeping", 0], ["listening", 1600], ["thinking", 3600], ["speaking", 5200], ["working", 8200], ["success", 10600], ["idle", 12600]];
+  seq.forEach(([s, t]) => timers.push(setTimeout(() => setState(s), t)));
+  for (let t = 5200; t < 8200; t += 90) timers.push(setTimeout(() => { big.level = Math.abs(Math.sin(t / 130)) * (0.4 + Math.random() * 0.6); }, t));
+};
+</script>
+</body>
+</html>
