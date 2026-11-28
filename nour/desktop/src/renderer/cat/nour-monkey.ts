@@ -1,0 +1,418 @@
+/**
+ * <nour-monkey> — Nour's animated monkey (from the user's own design).
+ *
+ * A self-contained Web Component: one SVG, CSS animations, a little JS for
+ * natural blinking, eye-tracking and lip-sync. Works in plain HTML, React and
+ * the Electron floating companion window.
+ *
+ *   <nour-monkey state="idle"></nour-monkey>
+ *   cat.state = "listening";      // one of CAT_STATES
+ *   cat.level = 0.6;              // live voice loudness 0..1 (mouth/ears follow it)
+ * */
+
+export const CAT_STATES = [
+  "sleeping", "idle", "listening", "thinking", "speaking",
+  "working", "success", "error", "translating",
+] as const;
+export type CatState = (typeof CAT_STATES)[number];
+
+const ACCENT: Record<CatState, string> = {
+  sleeping: "#5b6b96", idle: "#46d7ff", listening: "#5ee2ff", thinking: "#a78bfa", speaking: "#46d7ff",
+  working: "#fbbf24", success: "#4ade80", error: "#f87171", translating: "#34d399",
+};
+
+const SVG = /* svg */ `
+<svg viewBox="-10 -22 260 286" role="img" aria-label="Nour the monkey">
+  <defs>
+    <radialGradient id="aura" cx="50%" cy="55%" r="50%">
+      <stop offset="0" stop-color="var(--accent)" stop-opacity=".30"/>
+      <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="iris" cx="50%" cy="38%" r="65%">
+      <stop offset="0" stop-color="#eafcff"/>
+      <stop offset=".35" stop-color="var(--accent)"/>
+      <stop offset="1" stop-color="#0d5c7a"/>
+    </radialGradient>
+    <linearGradient id="furShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--fur)"/>
+      <stop offset="1" stop-color="var(--fur-shade)"/>
+    </linearGradient>
+  </defs>
+
+  <ellipse class="aura" cx="120" cy="150" rx="128" ry="128" fill="url(#aura)"/>
+  <ellipse class="shadow" cx="120" cy="252" rx="58" ry="7"/>
+
+  <g class="cat">
+    <!-- curly tail -->
+    <g class="tail">
+      <path class="tailOut" d="M150 212 C 190 222, 210 198, 202 174 C 196 158, 176 158, 175 173 C 174 182, 185 186, 189 177"/>
+      <path class="tailIn" d="M150 212 C 190 222, 210 198, 202 174 C 196 158, 176 158, 175 173 C 174 182, 185 186, 189 177"/>
+    </g>
+
+    <g class="body">
+      <!-- legs & feet -->
+      <path class="fur" d="M97 210 L 97 238 Q 97 243 103 243 L 113 243 Q 118 243 118 238 L 118 210 Z"/>
+      <path class="fur" d="M122 210 L 122 238 Q 122 243 127 243 L 137 243 Q 143 243 143 238 L 143 210 Z"/>
+      <g class="paws">
+        <ellipse class="face" cx="105" cy="246" rx="15" ry="7"/>
+        <ellipse class="face" cx="135" cy="246" rx="15" ry="7"/>
+        <path class="line" d="M99 244 v4 M106 244 v4 M129 244 v4 M136 244 v4"/>
+      </g>
+      <!-- torso -->
+      <path class="fur" fill="url(#furShade)" d="M84 168 Q 120 158 156 168 L 160 216 Q 120 226 80 216 Z"/>
+      <!-- arms -->
+      <g class="arm armL"><path class="fur" d="M85 172 C 75 186, 72 204, 76 216 C 79 224, 89 224, 91 216 C 93 204, 93 190, 96 178 Z"/><circle class="face" cx="83" cy="219" r="8.5"/></g>
+      <g class="arm armR"><path class="fur" d="M155 172 C 165 186, 168 204, 164 216 C 161 224, 151 224, 149 216 C 147 204, 147 190, 144 178 Z"/><circle class="face" cx="157" cy="219" r="8.5"/></g>
+      <!-- T-shirt with Nx -->
+      <path class="tee" d="M90 163 Q 120 176 150 163 L 171 176 L 163 195 L 155 191 L 157 214 Q 120 223 83 214 L 85 191 L 77 195 L 69 176 Z"/>
+      <path class="seam" d="M90 163 Q 120 176 150 163 M85 191 L 87 178 M155 191 L 153 178"/>
+      <text class="nx" x="120" y="204">Nx</text>
+    </g>
+
+    <g class="head">
+      <g class="ear earL"><circle class="fur" cx="63" cy="108" r="20"/><circle class="earIn" cx="65" cy="109" r="12"/></g>
+      <g class="ear earR"><circle class="fur" cx="177" cy="108" r="20"/><circle class="earIn" cx="175" cy="109" r="12"/></g>
+      <circle class="fur" fill="url(#furShade)" cx="120" cy="104" r="56"/>
+      <path class="fur tuft" d="M111 51 C 108 38, 121 29, 135 33 C 127 35, 125 40, 129 44 C 121 41, 118 46, 117 50 Z"/>
+      <path class="face" d="M120 72 C 104 57, 75 64, 77 92 C 70 101, 70 121, 84 134 C 96 148, 144 148, 156 134 C 170 121, 170 101, 163 92 C 165 64, 136 57, 120 72 Z"/>
+
+      <ellipse class="blush" cx="85" cy="124" rx="8" ry="4.5"/>
+      <ellipse class="blush" cx="155" cy="124" rx="8" ry="4.5"/>
+
+      <g class="x eyesOpen">
+        <g class="eye"><ellipse class="eyeball" cx="98" cy="101" rx="11" ry="13"/>
+          <g class="look"><ellipse cx="98" cy="102" rx="7.5" ry="9.5" fill="url(#iris)"/><ellipse class="pupil" cx="98" cy="102" rx="3" ry="6.5"/></g>
+          <circle class="shine" cx="94" cy="96" r="3"/></g>
+        <g class="eye"><ellipse class="eyeball" cx="142" cy="101" rx="11" ry="13"/>
+          <g class="look"><ellipse cx="142" cy="102" rx="7.5" ry="9.5" fill="url(#iris)"/><ellipse class="pupil" cx="142" cy="102" rx="3" ry="6.5"/></g>
+          <circle class="shine" cx="138" cy="96" r="3"/></g>
+      </g>
+      <path class="x line thick eyesClosed" d="M87 101 Q 98 109 109 101 M131 101 Q 142 109 153 101"/>
+      <path class="x line thick eyesHappy" d="M87 105 Q 98 91 109 105 M131 105 Q 142 91 153 105"/>
+
+      <!-- round black shades with a shine -->
+      <g class="shades">
+        <path class="arm2" d="M83 98 L 66 96 M157 98 L 174 96"/>
+        <path class="bridge" d="M112 100 Q 120 95 128 100"/>
+        <circle class="lens" cx="98" cy="101" r="15.5"/>
+        <circle class="lens" cx="142" cy="101" r="15.5"/>
+        <path class="glint" d="M88 98 Q 89 91 96 89 M132 98 Q 133 91 140 89"/>
+        <path class="rim" d="M86 110 Q 98 118 110 110 M130 110 Q 142 118 154 110"/>
+      </g>
+
+      <path class="x line brow browThink" d="M85 80 Q 96 74 108 79 M132 83 L 155 83"/>
+      <path class="x line brow browWorry" d="M86 84 L 106 78 M134 78 L 154 84"/>
+      <path class="x line brow browFocus" d="M87 80 L 106 83 M134 83 L 153 80"/>
+
+      <path class="nose" d="M113.5 114 Q 120 111.5 126.5 114 Q 124.5 120.5 120 121 Q 115.5 120.5 113.5 114 Z"/>
+      <path class="x line mNeutral" d="M120 121 v 4 M107 126 Q 113 133 120 125 Q 127 133 133 126"/>
+      <g class="x mOpen"><path class="mouthIn" d="M110 127 Q 120 125 130 127 Q 129 142 120 142 Q 111 142 110 127 Z"/><ellipse class="tongue" cx="120" cy="138" rx="5" ry="3"/></g>
+      <g class="x mSmile"><path class="mouthIn" d="M104 126 Q 120 129 136 126 Q 132 146 120 146 Q 108 146 104 126 Z"/><ellipse class="tongue" cx="120" cy="141" rx="6.5" ry="3.6"/></g>
+      <path class="x line mFrown" d="M109 135 Q 120 127 131 135"/>
+      <ellipse class="x mouthIn mO" cx="120" cy="132" rx="3.6" ry="4.2"/>
+
+      <path class="x sweat" d="M172 70 C 168 78, 166 82, 170 86 C 175 89, 179 84, 176 78 Z"/>
+    </g>
+
+    <!-- working: laptop -->
+    <g class="x laptop">
+      <path class="lid" d="M84 186 L 156 186 L 160 228 L 80 228 Z"/>
+      <circle class="logo" cx="120" cy="206" r="5"/>
+      <path class="base" d="M70 228 L 170 228 L 176 239 L 64 239 Z"/>
+      <g class="typing"><circle class="face pawL" cx="100" cy="228" r="8"/><circle class="face pawR" cx="140" cy="228" r="8"/></g>
+    </g>
+  </g>
+
+  <!-- effects -->
+  <g class="x zzz"><text x="182" y="40">z</text><text x="196" y="22" class="z2">z</text><text x="212" y="2" class="z3">Z</text></g>
+  <g class="x waves"><path d="M196 64 q 10 13 0 26"/><path d="M206 56 q 17 21 0 42" class="w2"/><path d="M44 64 q -10 13 0 26"/><path d="M34 56 q -17 21 0 42" class="w2"/></g>
+  <g class="x thought"><circle cx="186" cy="52" r="3.5"/><circle cx="196" cy="38" r="5.5"/>
+    <rect x="188" y="-4" width="52" height="30" rx="15"/><g class="dots"><circle cx="202" cy="11" r="3.2"/><circle cx="214" cy="11" r="3.2"/><circle cx="226" cy="11" r="3.2"/></g></g>
+  <g class="x gear"><circle class="teeth" cx="222" cy="24" r="12"/><circle class="hub" cx="222" cy="24" r="7"/><circle class="hole" cx="222" cy="24" r="3"/></g>
+  <g class="x sparkles"><path d="M28 70 l4 -12 4 12 12 4 -12 4 -4 12 -4 -12 -12 -4 z"/><path class="s2" d="M206 40 l3 -9 3 9 9 3 -9 3 -3 9 -3 -9 -9 -3 z"/><path class="s3" d="M214 150 l2.5 -7 2.5 7 7 2.5 -7 2.5 -2.5 7 -2.5 -7 -7 -2.5 z"/><path class="s2" d="M18 168 l2.5 -7 2.5 7 7 2.5 -7 2.5 -2.5 7 -2.5 -7 -7 -2.5 z"/></g>
+  <g class="x bubbles">
+    <g class="bA"><rect x="-6" y="8" width="44" height="32" rx="10"/><path d="M14 40 l6 9 4 -9 z"/><text x="16" y="31">A</text></g>
+    <g class="bB"><rect x="202" y="8" width="44" height="32" rx="10"/><path d="M226 40 l-6 9 -4 -9 z"/><text x="224" y="32">文</text></g>
+    <path class="swap" d="M64 2 Q 120 -18 176 2 M170 -4 l6 6 -8 2"/>
+  </g>
+</svg>`;
+
+const CSS = /* css */ `
+:host { display: inline-block; width: 240px; aspect-ratio: 260 / 286; --accent: #46d7ff; --fur: #f5f7fc; --fur-shade: #dfe4f1; --ink: #141a2e; --pink: #f4a9c0; --lx: 0px; --ly: 0px; --mouth: 1; }
+:host([fur="brown"]) { --fur: #b0612f; --fur-shade: #93491f; --ink: #1c0f08; --pink: #f0a08a; }
+:host([fur="black"]) { --fur: #2a3047; --fur-shade: #1c2134; --ink: #070a14; --pink: #d98aa5; }
+svg { width: 100%; height: 100%; overflow: visible; display: block; }
+* { transform-box: fill-box; }
+.fur { fill: var(--fur); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+.tip { fill: var(--fur-shade); }
+.chest { fill: #fff; opacity: .55; }
+:host([fur="black"]) .chest { fill: #3a4262; opacity: .7; }
+:host([fur="brown"]) .chest { fill: #d68a55; opacity: .7; }
+.inner { fill: var(--pink); }
+.line { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+:host([fur="black"]) .line, :host([fur="black"]) .whisk { stroke: #c9d2ee; }
+.thick { stroke-width: 3.6; }
+.whisk { fill: none; stroke: #b9c3e3; stroke-width: 1.5; stroke-linecap: round; opacity: .7; }
+.blush { fill: var(--pink); opacity: .45; }
+.eyeball { fill: #0b1222; }
+.pupil { fill: #04070f; }
+.shine { fill: #fff; }
+.nose { fill: var(--pink); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }
+.mouthIn { fill: #3b1024; stroke: var(--ink); stroke-width: 2; }
+.tongue { fill: #f27a9b; }
+.tee { fill: #0b0c12; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+.seam { fill: none; stroke: #23263a; stroke-width: 2; stroke-linecap: round; opacity: .7; }
+.nx { fill: #fff; stroke: var(--accent); stroke-width: .8; paint-order: stroke; font: 800 25px/1 "Inter", system-ui, -apple-system, sans-serif; text-anchor: middle; letter-spacing: -.5px; filter: drop-shadow(0 0 5px var(--accent)); transition: fill .4s; }
+.stripes { fill: none; stroke: #b8c0d6; stroke-width: 3; stroke-linecap: round; }
+:host([fur="black"]) .stripes { stroke: #3d4566; }
+:host([fur="brown"]) .stripes { stroke: #7a3714; }
+.shades { transform-origin: 50% 50%; transition: transform .5s cubic-bezier(.3,1.4,.5,1); }
+.shades .glass { fill: #08101f; fill-opacity: .5; stroke: #070b16; stroke-width: 3; stroke-linejoin: round; }
+.shades .arm { fill: none; stroke: #070b16; stroke-width: 3; stroke-linecap: round; }
+.shades .sheen { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; opacity: .35; }
+.shades .rim { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linecap: round; opacity: .8; filter: drop-shadow(0 0 3px var(--accent)); }
+:host([state="sleeping"]) .shades, :host([state="success"]) .shades { transform: translateY(-31px) scale(.92); }
+:host([state="error"]) .shades { transform: translateY(4px) rotate(-9deg); }
+:host([state="thinking"]) .shades { transform: translateY(-2px) rotate(3deg); }
+:host([state="working"]) .shades .glass { fill: #0b1a33; fill-opacity: .55; }
+.shadow { fill: #000; opacity: .35; }
+.aura { opacity: .7; transition: opacity .4s; }
+.sweat { fill: #9fd8ff; stroke: #2a6c9c; stroke-width: 1.2; }
+.lid { fill: #1b2340; stroke: #3c4a78; stroke-width: 2; }
+.logo { fill: var(--accent); filter: drop-shadow(0 0 5px var(--accent)); }
+.base { fill: #2b3557; stroke: #3c4a78; stroke-width: 2; }
+.zzz text { fill: #a9b8e6; font: 700 18px/1 "Inter", system-ui, sans-serif; }
+.waves path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.thought circle, .thought rect { fill: #e9eefc; stroke: var(--ink); stroke-width: 2; }
+.thought .dots circle { fill: #5b4fc7; stroke: none; }
+.gear .teeth { fill: none; stroke: var(--accent); stroke-width: 6; stroke-dasharray: 4.2 3.6; }
+.gear .hub { fill: var(--accent); }
+.gear .hole { fill: #0b1222; }
+.sparkles path { fill: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
+.bubbles rect, .bubbles path:not(.swap) { fill: #0f1a33; stroke: var(--accent); stroke-width: 2; }
+.bubbles text { fill: #eafff6; font: 700 19px/1 "Inter", system-ui, sans-serif; text-anchor: middle; }
+.bubbles .swap { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 5 6; }
+
+/* every optional piece fades in/out so expressions change smoothly */
+.x { opacity: 0; transition: opacity .28s ease; }
+
+/* transform origins */
+.cat { transform-origin: 50% 100%; }
+.body { transform-origin: 50% 100%; }
+.head { transform-origin: 50% 92%; transition: transform .5s cubic-bezier(.3,1.4,.5,1); }
+.earL { transform-origin: 70% 100%; transition: transform .35s; } .earR { transform-origin: 30% 100%; transition: transform .35s; }
+.tail { transform-origin: 0% 90%; }
+.eye { transform-origin: 50% 50%; transition: transform .09s; }
+.look { transform: translate(var(--lx), var(--ly)); transition: transform .18s ease-out; }
+.mOpen { transform-origin: 50% 0%; }
+
+/* ---------- always-on life ---------- */
+.body { animation: breathe 3.6s ease-in-out infinite; }
+.tail { animation: sway 3s ease-in-out infinite; }
+.earR { animation: twitch 7s infinite; }
+.blink .eye { transform: scaleY(.08); }
+
+/* ---------- states ---------- */
+/* default face (idle) */
+:host(:not([state])) .eyesOpen, :host(:not([state])) .mNeutral,
+:host([state="idle"]) .eyesOpen, :host([state="idle"]) .mNeutral { opacity: 1; }
+
+/* sleeping */
+:host([state="sleeping"]) .eyesClosed, :host([state="sleeping"]) .mNeutral, :host([state="sleeping"]) .zzz { opacity: 1; }
+:host([state="sleeping"]) .head { transform: translateY(7px) rotate(-7deg); }
+:host([state="sleeping"]) .body { animation-duration: 5.5s; }
+:host([state="sleeping"]) .tail { animation: none; transform: rotate(-14deg); }
+:host([state="sleeping"]) .earL { transform: rotate(-10deg); } :host([state="sleeping"]) .earR { transform: rotate(10deg); animation: none; }
+:host([state="sleeping"]) .aura { opacity: .25; }
+.zzz text { animation: zfloat 3s ease-in-out infinite; } .zzz .z2 { animation-delay: .8s; } .zzz .z3 { animation-delay: 1.6s; }
+
+/* listening */
+:host([state="listening"]) .eyesOpen, :host([state="listening"]) .mO, :host([state="listening"]) .waves { opacity: 1; }
+:host([state="listening"]) .earL { transform: rotate(8deg) scale(1.1); } :host([state="listening"]) .earR { transform: rotate(-8deg) scale(1.1); animation: none; }
+:host([state="listening"]) .head { transform: rotate(4deg); }
+:host([state="listening"]) .eye { transform: scale(1.08); }
+:host([state="listening"]) .tail { animation-duration: 1.6s; }
+:host([state="listening"]) .aura { animation: pulse 1.6s ease-in-out infinite; }
+.waves path { animation: wave 1.4s ease-out infinite; } .waves .w2 { animation-delay: .35s; }
+
+/* thinking */
+:host([state="thinking"]) .eyesOpen, :host([state="thinking"]) .browThink, :host([state="thinking"]) .thought { opacity: 1; }
+:host([state="thinking"]) .mFrown { opacity: .0; }
+:host([state="thinking"]) .mNeutral { opacity: 1; }
+:host([state="thinking"]) .look { transform: translate(4px, -4px); }
+:host([state="thinking"]) .head { transform: rotate(-6deg); }
+:host([state="thinking"]) .tail { animation-duration: 4.5s; }
+.thought .dots circle { animation: dot 1.2s ease-in-out infinite; } .thought .dots circle:nth-child(2) { animation-delay: .2s; } .thought .dots circle:nth-child(3) { animation-delay: .4s; }
+
+/* speaking */
+:host([state="speaking"]) .eyesOpen, :host([state="speaking"]) .mOpen { opacity: 1; }
+:host([state="speaking"]) .mOpen { animation: talk .34s ease-in-out infinite alternate; }
+:host([state="speaking"][data-live]) .mOpen { animation: none; transform: scaleY(var(--mouth)); transition: transform .06s; }
+:host([state="speaking"]) .head { animation: nod 2.4s ease-in-out infinite; }
+:host([state="speaking"]) .aura { animation: pulse 1.1s ease-in-out infinite; }
+
+/* working */
+:host([state="working"]) .eyesOpen, :host([state="working"]) .browFocus, :host([state="working"]) .mNeutral,
+:host([state="working"]) .laptop, :host([state="working"]) .gear { opacity: 1; }
+:host([state="working"]) .look { transform: translate(0, 4px); }
+:host([state="working"]) .paws { opacity: 0; }
+:host([state="working"]) .head { transform: translateY(3px); }
+.typing .pawL { animation: type .28s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.typing .pawR { animation: type .28s ease-in-out infinite alternate-reverse; transform-origin: 50% 100%; }
+.gear { transform-origin: 50% 50%; animation: spin 3s linear infinite; }
+.logo { animation: glow 1.4s ease-in-out infinite; }
+
+/* success */
+:host([state="success"]) .eyesHappy, :host([state="success"]) .mSmile, :host([state="success"]) .sparkles { opacity: 1; }
+:host([state="success"]) .cat { animation: hop 1.1s cubic-bezier(.3,.7,.4,1) infinite; }
+:host([state="success"]) .tail { animation-duration: .5s; }
+:host([state="success"]) .blush { opacity: .75; }
+.sparkles path { transform-origin: 50% 50%; animation: twinkle 1.2s ease-in-out infinite; } .sparkles .s2 { animation-delay: .4s; } .sparkles .s3 { animation-delay: .8s; }
+
+/* error */
+:host([state="error"]) .eyesOpen, :host([state="error"]) .browWorry, :host([state="error"]) .mFrown, :host([state="error"]) .sweat { opacity: 1; }
+:host([state="error"]) .eye { transform: scale(.82); }
+:host([state="error"]) .earL { transform: rotate(-28deg); } :host([state="error"]) .earR { transform: rotate(28deg); animation: none; }
+:host([state="error"]) .head { animation: shake .45s ease-in-out 3; }
+:host([state="error"]) .tail { animation: none; transform: rotate(24deg); }
+:host([state="error"]) .sweat { animation: drip 2s ease-in infinite; }
+
+/* translating */
+:host([state="translating"]) .eyesOpen, :host([state="translating"]) .mNeutral, :host([state="translating"]) .bubbles { opacity: 1; }
+:host([state="translating"]) .earL { transform: rotate(6deg) scale(1.06); } :host([state="translating"]) .earR { transform: rotate(-6deg) scale(1.06); animation: none; }
+:host([state="translating"]) .head { animation: look 4s ease-in-out infinite; }
+.bubbles .bA { transform-origin: 50% 100%; animation: bub 2.4s ease-in-out infinite; }
+.bubbles .bB { transform-origin: 50% 100%; animation: bub 2.4s ease-in-out 1.2s infinite; }
+.bubbles .swap { animation: dash 1.2s linear infinite; }
+
+/* ---------- keyframes ---------- */
+@keyframes breathe { 50% { transform: scaleY(1.025) scaleX(.995); } }
+@keyframes sway { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(9deg); } }
+@keyframes twitch { 0%, 88%, 100% { transform: rotate(0); } 91% { transform: rotate(-12deg); } 94% { transform: rotate(3deg); } }
+@keyframes zfloat { 0% { opacity: 0; transform: translate(0, 8px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -14px); } }
+@keyframes pulse { 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes wave { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes dot { 0%, 100% { transform: translateY(0); opacity: .5; } 50% { transform: translateY(-4px); opacity: 1; } }
+@keyframes talk { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+@keyframes nod { 0%,100% { transform: rotate(0); } 30% { transform: rotate(2deg) translateY(-1px); } 70% { transform: rotate(-2deg); } }
+@keyframes type { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes glow { 50% { opacity: .45; } }
+@keyframes hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.04, .95); } 40% { transform: translateY(-16px) scale(.98, 1.03); } 70% { transform: translateY(0) scale(1.03, .97); } }
+@keyframes twinkle { 0%, 100% { transform: scale(.4) rotate(0); opacity: .3; } 50% { transform: scale(1.1) rotate(25deg); opacity: 1; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px) rotate(-2deg); } 75% { transform: translateX(4px) rotate(2deg); } }
+@keyframes drip { 0% { transform: translateY(-4px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(12px); opacity: 0; } }
+@keyframes look { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes bub { 0%, 100% { transform: scale(.85); opacity: .55; } 50% { transform: scale(1.06); opacity: 1; } }
+@keyframes dash { to { stroke-dashoffset: -22; } }
+
+
+/* ===== monkey ===== */
+:host { --fur: #93501f; --fur-shade: #7a3f17; --ink: #1c0f08; --face: #f3c495; --pink: #f0a08a; }
+.face { fill: var(--face); stroke: var(--ink); stroke-width: 2.4; stroke-linejoin: round; }
+.earIn { fill: #e2a072; }
+.tailOut { fill: none; stroke: var(--ink); stroke-width: 13; stroke-linecap: round; }
+.tailIn { fill: none; stroke: var(--fur); stroke-width: 7.5; stroke-linecap: round; }
+.tail { transform-origin: 0% 85%; }
+.nose { fill: var(--ink); stroke: none; }
+.blush { opacity: .5; }
+.shades .lens { fill: #050608; fill-opacity: .82; stroke: #000; stroke-width: 3; }
+.shades .bridge, .shades .arm2 { fill: none; stroke: #050608; stroke-width: 3.2; stroke-linecap: round; }
+.shades .glint { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; opacity: .9; }
+.shades .rim { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linecap: round; opacity: .55; filter: drop-shadow(0 0 3px var(--accent)); }
+:host([state="sleeping"]) .shades, :host([state="success"]) .shades { transform: translateY(-36px) scale(.9); }
+:host([state="error"]) .shades { transform: translateY(4px) rotate(-9deg); }
+.arm { transform-origin: 50% 4%; transition: transform .45s cubic-bezier(.3,1.4,.5,1); }
+.armL { animation: armSway 3.6s ease-in-out infinite; } .armR { animation: armSway 3.6s ease-in-out -1.8s infinite; }
+@keyframes armSway { 0%, 100% { transform: rotate(1.5deg); } 50% { transform: rotate(-1.5deg); } }
+:host([state="success"]) .armR { animation: wave .5s ease-in-out infinite alternate; }
+@keyframes wave { from { transform: rotate(-150deg); } to { transform: rotate(-118deg); } }
+:host([state="thinking"]) .armR { animation: none; transform: rotate(-138deg) translateY(8px); }
+:host([state="error"]) .armL { animation: none; transform: rotate(150deg); }
+:host([state="working"]) .arm { opacity: 0; }
+:host([state="listening"]) .earL { transform: scale(1.12) translateX(-2px); } :host([state="listening"]) .earR { transform: scale(1.12) translateX(2px); animation: none; }
+:host([state="translating"]) .earL { transform: scale(1.07); } :host([state="translating"]) .earR { transform: scale(1.07); animation: none; }
+:host([state="error"]) .earL { transform: translateY(5px) rotate(-12deg); } :host([state="error"]) .earR { transform: translateY(5px) rotate(12deg); animation: none; }
+:host([state="sleeping"]) .earL, :host([state="sleeping"]) .earR { transform: translateY(3px); }
+.earL { transform-origin: 100% 50%; } .earR { transform-origin: 0% 50%; }
+.typing .pawL, .typing .pawR { transform-origin: 50% 100%; }
+.waves { transform: translateY(42px); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
+`;
+
+const BLINKS_IN: CatState[] = ["idle", "listening", "thinking", "speaking", "working", "translating"];
+
+export class NourMonkey extends HTMLElement {
+  static get observedAttributes() { return ["state"]; }
+  private root: ShadowRoot;
+  private blinkTimer = 0;
+  private liveTimer = 0;
+  private onPointer = (e: PointerEvent) => this.follow(e);
+
+  constructor() {
+    super();
+    this.root = this.attachShadow({ mode: "open" });
+    this.root.innerHTML = `<style>${CSS}</style>${SVG}`;
+  }
+
+  get state(): CatState { return (this.getAttribute("state") as CatState) || "idle"; }
+  set state(s: CatState) { if (CAT_STATES.includes(s)) this.setAttribute("state", s); }
+
+  get fur(): string { return this.getAttribute("fur") || "white"; }
+  set fur(f: string) { this.setAttribute("fur", f); }
+
+  /** Live loudness of Nour's own voice (0..1): drives the mouth while speaking. */
+  set level(v: number) {
+    const l = Math.max(0, Math.min(1, v || 0));
+    this.style.setProperty("--mouth", String(0.15 + l * 0.95));
+    this.setAttribute("data-live", "");
+    clearTimeout(this.liveTimer);
+    this.liveTimer = window.setTimeout(() => this.removeAttribute("data-live"), 250);
+  }
+
+  connectedCallback() {
+    if (!this.hasAttribute("state")) this.setAttribute("state", "idle");
+    this.applyAccent();
+    window.addEventListener("pointermove", this.onPointer, { passive: true });
+    this.scheduleBlink();
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener("pointermove", this.onPointer);
+    clearTimeout(this.blinkTimer);
+  }
+
+  attributeChangedCallback() {
+    this.applyAccent();
+    if (this.state !== "idle") { this.style.setProperty("--lx", "0px"); this.style.setProperty("--ly", "0px"); }
+  }
+
+  private applyAccent() { this.style.setProperty("--accent", ACCENT[this.state] || ACCENT.idle); }
+
+  /** Natural, irregular blinking (sometimes a double blink). */
+  private scheduleBlink() {
+    this.blinkTimer = window.setTimeout(() => {
+      const eyes = this.root.querySelector(".eyesOpen");
+      if (eyes && BLINKS_IN.includes(this.state)) {
+        eyes.classList.add("blink");
+        setTimeout(() => eyes.classList.remove("blink"), 130);
+        if (Math.random() < 0.2) setTimeout(() => { eyes.classList.add("blink"); setTimeout(() => eyes.classList.remove("blink"), 120); }, 260);
+      }
+      this.scheduleBlink();
+    }, 2200 + Math.random() * 4200);
+  }
+
+  /** When idle, the eyes follow the pointer a little. */
+  private follow(e: PointerEvent) {
+    if (this.state !== "idle") return;
+    const r = this.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height * 0.38;
+    const dx = e.clientX - cx, dy = e.clientY - cy, d = Math.hypot(dx, dy) || 1;
+    const k = Math.min(1, d / 300);
+    this.style.setProperty("--lx", `${((dx / d) * 3.2 * k).toFixed(2)}px`);
+    this.style.setProperty("--ly", `${((dy / d) * 3.2 * k).toFixed(2)}px`);
+  }
+}
+
+if (!customElements.get("nour-monkey")) customElements.define("nour-monkey", NourMonkey);

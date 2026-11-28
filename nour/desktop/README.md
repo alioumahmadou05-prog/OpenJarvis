@@ -55,12 +55,16 @@ cat.fur = "black";   // or "white"
 
 It respects `prefers-reduced-motion`.
 
+### Nour's monkey (the user's own design)
+
+The user then chose their own design: a brown cartoon monkey standing upright, with round black shades and a black T-shirt with a white **"Nx"**. `src/renderer/cat/nour-monkey.ts` (`<nour-monkey>`) redraws it in vector form and uses the same state engine, effects and API as the cat. Its extras: it waves on success, scratches its head on error, and raises a hand while thinking. Its ears grow while listening, and the shades lift onto its head when it is happy or asleep (they are slightly see-through, so the eyes still show). The preview is in `preview/Nour Monkey.html`.
+
 ### Build and preview
 
 ```bash
 cd nour/desktop
 tsc -p .                          # compiles to build/
-node scripts/build-preview.mjs    # writes "preview/Nour Cat.html" (one self-contained file)
+node scripts/build-preview.mjs    # writes "preview/Nour Cat.html" and "preview/Nour Monkey.html"
 ```
 
 Open `preview/Nour Cat.html` in Chrome to see all 9 states, switch fur colour, test lip-sync and play a demo sequence.
