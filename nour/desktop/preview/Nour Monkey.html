@@ -171,7 +171,7 @@ const SVG = /* svg */ `
 
   <!-- effects -->
   <g class="x zzz"><text x="182" y="40">z</text><text x="196" y="22" class="z2">z</text><text x="212" y="2" class="z3">Z</text></g>
-  <g class="x waves"><path d="M196 64 q 10 13 0 26"/><path d="M206 56 q 17 21 0 42" class="w2"/><path d="M44 64 q -10 13 0 26"/><path d="M34 56 q -17 21 0 42" class="w2"/></g>
+  <g class="x waves"><path d="M206 96 q 10 13 0 26"/><path d="M216 88 q 17 21 0 42" class="w2"/><path d="M34 96 q -10 13 0 26"/><path d="M24 88 q -17 21 0 42" class="w2"/></g>
   <g class="x thought"><circle cx="186" cy="52" r="3.5"/><circle cx="196" cy="38" r="5.5"/>
     <rect x="188" y="-4" width="52" height="30" rx="15"/><g class="dots"><circle cx="202" cy="11" r="3.2"/><circle cx="214" cy="11" r="3.2"/><circle cx="226" cy="11" r="3.2"/></g></g>
   <g class="x gear"><circle class="teeth" cx="222" cy="24" r="12"/><circle class="hub" cx="222" cy="24" r="7"/><circle class="hole" cx="222" cy="24" r="3"/></g>
@@ -370,8 +370,8 @@ svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .arm { transform-origin: 50% 4%; transition: transform .45s cubic-bezier(.3,1.4,.5,1); }
 .armL { animation: armSway 3.6s ease-in-out infinite; } .armR { animation: armSway 3.6s ease-in-out -1.8s infinite; }
 @keyframes armSway { 0%, 100% { transform: rotate(1.5deg); } 50% { transform: rotate(-1.5deg); } }
-:host([state="success"]) .armR { animation: wave .5s ease-in-out infinite alternate; }
-@keyframes wave { from { transform: rotate(-150deg); } to { transform: rotate(-118deg); } }
+:host([state="success"]) .armR { animation: armWave .5s ease-in-out infinite alternate; }
+@keyframes armWave { from { transform: rotate(-150deg); } to { transform: rotate(-118deg); } }
 :host([state="thinking"]) .armR { animation: none; transform: rotate(-138deg) translateY(8px); }
 :host([state="error"]) .armL { animation: none; transform: rotate(150deg); }
 :host([state="working"]) .arm { opacity: 0; }
@@ -381,7 +381,6 @@ svg { width: 100%; height: 100%; overflow: visible; display: block; }
 :host([state="sleeping"]) .earL, :host([state="sleeping"]) .earR { transform: translateY(3px); }
 .earL { transform-origin: 100% 50%; } .earR { transform-origin: 0% 50%; }
 .typing .pawL, .typing .pawR { transform-origin: 50% 100%; }
-.waves { transform: translateY(42px); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
 `;
