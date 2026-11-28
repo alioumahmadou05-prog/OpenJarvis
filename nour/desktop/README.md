@@ -27,7 +27,7 @@ Nour is a voice-first personal assistant for macOS, starting with an Intel MacBo
 - **The cat.** Dexter's character is a white cartoon cat with round black sunglasses and a black "dex" T-shirt, delivered as pre-rendered WebP/WebM animations.
 - **Assets.** The app is proprietary. Its character art, animations, sounds and name belong to its makers, and nothing in the package grants reuse. **No Dexter code or asset is copied into Nour.**
 
-Nour's cat is therefore an **original design** in the same spirit: a friendly, expressive cartoon cat that lives on the desktop. Its identity is a white (or black) cat with glowing cyan eyes, a navy collar and a luminous **N** tag. The colour of the tag and the glow behind the cat changes with each state. Its eyes are always visible, which real facial expressions need, so it has no sunglasses.
+Nour's cat is therefore an **original design** in the same spirit: a friendly cartoon cat that lives on the desktop. Its look is a white (or black) cat with forehead tabby stripes and glowing blue eyes. It wears a navy T-shirt with a glowing **"Nx"** and tinted futuristic shades that the eyes show through, so expressions stay readable. The shades slide up onto its head when it is happy or asleep, and sit crooked on an error. The colour of the "Nx" and of the glow behind the cat changes with each state.
 
 ## Phase 1: the cat
 
@@ -38,11 +38,11 @@ Nour's cat is therefore an **original design** in the same spirit: a friendly, e
 | `sleeping` | Closed eyes, slow deep breathing, drooping head, floating "z Z" |
 | `idle` | Breathing, swaying tail, random natural blinks (sometimes double), ear twitch, eyes follow the mouse |
 | `listening` | Ears perk up, eyes widen, head tilts, sound waves, pulsing glow |
-| `thinking` | Eyes look up, one brow raised, thought bubble with bouncing dots, violet tag |
+| `thinking` | Eyes look up, one brow raised, thought bubble with bouncing dots, violet Nx |
 | `speaking` | Mouth moves; driven by the real voice level via `cat.level = 0..1`, with a gentle nod |
-| `working` | Laptop, typing paws, focused brows, eyes down, spinning gear, amber tag |
-| `success` | Happy ^ ^ eyes, big smile, hop with squash and stretch, sparkles, green tag |
-| `error` | Worried brows, ears flattened, sweat drop, head shake, tail down, red tag |
+| `working` | Laptop, typing paws, focused brows, eyes down, spinning gear, amber Nx |
+| `success` | Happy ^ ^ eyes, big smile, hop with squash and stretch, sparkles, green Nx |
+| `error` | Worried brows, ears flattened, sweat drop, head shake, tail down, red Nx |
 | `translating` | "A ⇄ 文" speech bubbles, ears forward, head turning between speakers |
 
 ```ts
