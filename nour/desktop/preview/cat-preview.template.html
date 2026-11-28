@@ -34,12 +34,12 @@
   <p class="sub">Phase 1 · Nour's original animated cat, with 9 states. Move your mouse: in Idle, its eyes follow you.</p>
 
   <section class="stage">
-    <nour-cat id="big" state="idle"></nour-cat>
+    <nour-cat id="big" state="idle" fur="brown"></nour-cat>
     <div class="ctl">
       <div class="lbl">State</div>
       <div class="btns" id="stateBtns"></div>
       <div class="lbl">Fur</div>
-      <div class="btns"><button data-fur="white" aria-pressed="true">White</button><button data-fur="black" aria-pressed="false">Black</button></div>
+      <div class="btns"><button data-fur="brown" aria-pressed="true">Brown</button><button data-fur="white" aria-pressed="false">White</button><button data-fur="black" aria-pressed="false">Black</button></div>
       <div class="lbl">Voice level (lip-sync test)</div>
       <input type="range" id="lvl" min="0" max="1" step="0.01" value="0" aria-label="Voice level">
       <button id="demo">Play a demo conversation</button>
@@ -58,7 +58,7 @@ const INFO = {
 const big = document.getElementById("big");
 const LABEL = s => s[0].toUpperCase() + s.slice(1);
 document.getElementById("stateBtns").innerHTML = CAT_STATES.map(s => `<button data-s="${s}" aria-pressed="${s === "idle"}">${LABEL(s)}</button>`).join("");
-document.getElementById("grid").innerHTML = CAT_STATES.map(s => `<div class="card"><nour-cat state="${s}"></nour-cat><b>${LABEL(s)}</b><span>${INFO[s]}</span></div>`).join("");
+document.getElementById("grid").innerHTML = CAT_STATES.map(s => `<div class="card"><nour-cat state="${s}" fur="brown"></nour-cat><b>${LABEL(s)}</b><span>${INFO[s]}</span></div>`).join("");
 const setState = s => { big.state = s; document.querySelectorAll("[data-s]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s))); };
 document.getElementById("stateBtns").onclick = e => { const b = e.target.closest("[data-s]"); if (b) { stopDemo(); setState(b.dataset.s); } };
 document.querySelectorAll("[data-fur]").forEach(b => b.onclick = () => {

@@ -5,10 +5,10 @@
  * natural blinking, eye-tracking and lip-sync. Works in plain HTML, React and
  * the Electron floating companion window.
  *
- *   <nour-cat state="idle"></nour-cat>
+ *   <nour-cat state="idle" fur="brown"></nour-cat>
  *   cat.state = "listening";      // one of CAT_STATES
  *   cat.level = 0.6;              // live voice loudness 0..1 (mouth/ears follow it)
- *   cat.fur = "white" | "black";  // fur colour
+ *   cat.fur = "brown" | "white" | "black";  // fur colour
  */
 
 export const CAT_STATES = [
@@ -139,6 +139,7 @@ const SVG = /* svg */ `
 
 const CSS = /* css */ `
 :host { display: inline-block; width: 240px; aspect-ratio: 260 / 286; --accent: #46d7ff; --fur: #f5f7fc; --fur-shade: #dfe4f1; --ink: #141a2e; --pink: #f4a9c0; --lx: 0px; --ly: 0px; --mouth: 1; }
+:host([fur="brown"]) { --fur: #b0612f; --fur-shade: #93491f; --ink: #1c0f08; --pink: #f0a08a; }
 :host([fur="black"]) { --fur: #2a3047; --fur-shade: #1c2134; --ink: #070a14; --pink: #d98aa5; }
 svg { width: 100%; height: 100%; overflow: visible; display: block; }
 * { transform-box: fill-box; }
@@ -146,6 +147,7 @@ svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .tip { fill: var(--fur-shade); }
 .chest { fill: #fff; opacity: .55; }
 :host([fur="black"]) .chest { fill: #3a4262; opacity: .7; }
+:host([fur="brown"]) .chest { fill: #d68a55; opacity: .7; }
 .inner { fill: var(--pink); }
 .line { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 :host([fur="black"]) .line, :host([fur="black"]) .whisk { stroke: #c9d2ee; }
@@ -158,11 +160,12 @@ svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .nose { fill: var(--pink); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }
 .mouthIn { fill: #3b1024; stroke: var(--ink); stroke-width: 2; }
 .tongue { fill: #f27a9b; }
-.tee { fill: #142250; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
-.seam { fill: none; stroke: #0a1330; stroke-width: 2; stroke-linecap: round; opacity: .7; }
-.nx { fill: var(--accent); font: 800 25px/1 "Inter", system-ui, -apple-system, sans-serif; text-anchor: middle; letter-spacing: -.5px; filter: drop-shadow(0 0 5px var(--accent)); transition: fill .4s; }
+.tee { fill: #0b0c12; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+.seam { fill: none; stroke: #23263a; stroke-width: 2; stroke-linecap: round; opacity: .7; }
+.nx { fill: #fff; stroke: var(--accent); stroke-width: .8; paint-order: stroke; font: 800 25px/1 "Inter", system-ui, -apple-system, sans-serif; text-anchor: middle; letter-spacing: -.5px; filter: drop-shadow(0 0 5px var(--accent)); transition: fill .4s; }
 .stripes { fill: none; stroke: #b8c0d6; stroke-width: 3; stroke-linecap: round; }
 :host([fur="black"]) .stripes { stroke: #3d4566; }
+:host([fur="brown"]) .stripes { stroke: #7a3714; }
 .shades { transform-origin: 50% 50%; transition: transform .5s cubic-bezier(.3,1.4,.5,1); }
 .shades .glass { fill: #08101f; fill-opacity: .5; stroke: #070b16; stroke-width: 3; stroke-linejoin: round; }
 .shades .arm { fill: none; stroke: #070b16; stroke-width: 3; stroke-linecap: round; }

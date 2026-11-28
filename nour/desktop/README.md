@@ -27,7 +27,7 @@ Nour is a voice-first personal assistant for macOS, starting with an Intel MacBo
 - **The cat.** Dexter's character is a white cartoon cat with round black sunglasses and a black "dex" T-shirt, delivered as pre-rendered WebP/WebM animations.
 - **Assets.** The app is proprietary. Its character art, animations, sounds and name belong to its makers, and nothing in the package grants reuse. **No Dexter code or asset is copied into Nour.**
 
-Nour's cat is therefore an **original design** in the same spirit: a friendly cartoon cat that lives on the desktop. Its look is a white (or black) cat with forehead tabby stripes and glowing blue eyes. It wears a navy T-shirt with a glowing **"Nx"** and tinted futuristic shades that the eyes show through, so expressions stay readable. The shades slide up onto its head when it is happy or asleep, and sit crooked on an error. The colour of the "Nx" and of the glow behind the cat changes with each state.
+Nour's cat is therefore an **original design** in the same spirit: a friendly cartoon cat that lives on the desktop. Its look is a brown (or white, or black) cat with forehead tabby stripes and glowing blue eyes. It wears a black T-shirt with a white **"Nx"** outlined in light and tinted futuristic shades that the eyes show through, so expressions stay readable. The shades slide up onto its head when it is happy or asleep, and sit crooked on an error. The colour of the "Nx" and of the glow behind the cat changes with each state.
 
 ## Phase 1: the cat
 
