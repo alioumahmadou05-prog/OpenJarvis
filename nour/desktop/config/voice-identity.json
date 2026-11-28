@@ -1,0 +1,32 @@
+{
+  "name": "Nour",
+  "perceived_age": "16-20",
+  "gender_presentation": "young masculine",
+  "pitch": "medium, slightly deep and warm (not bass, not high)",
+  "texture": "smooth, clear, natural",
+  "accents": {
+    "en": "neutral international English",
+    "fr": "natural, fluent French"
+  },
+  "delivery": "relaxed, confident, charismatic; brisk but never rushed",
+  "personality": "intelligent, playful, subtly humorous",
+  "avoid": ["elderly", "mature-sounding", "excessively deep", "robotic", "exaggerated", "butler / formal"],
+  "same_speaker_across_languages": true,
+  "engines": {
+    "browser_app": {
+      "best": "Microsoft Edge Multilingual neural voice (Brian Multilingual, then Andrew Multilingual): one speaker for English and French",
+      "fallback_mac": { "en": ["Evan (Enhanced)", "Nathan (Enhanced)", "Tom (Enhanced)", "Alex"], "fr": ["Thomas (Enhanced)", "Thomas"] },
+      "pitch": 1.0,
+      "rate": 1.02
+    },
+    "desktop_local_phase5": {
+      "goal": "one consistent speaker in English and French, generated locally and offline",
+      "candidates": [
+        "XTTS-v2: cross-lingual voice from one short reference clip (personal-use licence; check speed on the Intel CPU)",
+        "MeloTTS (EN + FR) with an OpenVoice V2 tone-colour converter applied to both, so both languages share one voice (MIT)",
+        "Piper: fastest on the Intel CPU, but each language is a different speaker, so it is the fallback only"
+      ],
+      "reference_voice_rule": "The reference clip must be a voice the user has the right to use: their own, a consenting person's, or a synthetic seed voice. Never a celebrity or other real person without consent."
+    }
+  }
+}

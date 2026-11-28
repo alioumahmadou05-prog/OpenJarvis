@@ -79,6 +79,13 @@ node scripts/build-preview.mjs    # writes "preview/Nour Cat.html" and "preview/
 
 Open `preview/Nour Cat.html` in Chrome to see all 9 states, switch fur colour, test lip-sync and play a demo sequence.
 
+## Voice identity
+
+The spec lives in `config/voice-identity.json`. Nour should sound like a young man of 16 to 20: medium pitch, slightly deep and warm, smooth and clear, relaxed, confident and playful. It speaks neutral international English and natural French, and **must be the same recognisable speaker in both languages**. It must never sound elderly, overly deep, robotic or like a butler.
+
+- **Browser app (`nour/nour-ai-app.html`, now).** It prefers a Microsoft Edge *Multilingual* neural voice (Brian, then Andrew), which speaks English and French as one person. It detects the language of each phrase and sets it on that same voice. Without Edge, it uses the most natural young male voice per language (for example Evan or Nathan for English and Thomas for French) at a medium pitch. The old deep, British-butler settings are reset automatically.
+- **Desktop app (Phase 5, local and offline).** Piper cannot keep one speaker across English and French. Phase 5 will benchmark XTTS-v2 (cross-lingual from one reference clip) against MeloTTS with an OpenVoice V2 tone-colour converter on the Intel Mac, and keep Piper only as the fast fallback. The reference voice must be one the user has the right to use.
+
 ## Development environment (evaluation)
 
 - **This build environment.** A Linux x86_64 container with Node 22, TypeScript 6, Python 3.13, ffmpeg, cmake and Playwright/Chromium. It can build and test the web/React UI, the Python FastAPI backend and the logic (budget controller, router, memory).

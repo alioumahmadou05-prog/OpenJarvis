@@ -285,9 +285,10 @@ const cfg = Object.assign({
   openaiKey: "", provider: "auto", oaChat: "", oaStt: "", oaTts: "", oaVoice: "onyx",
   groqKey: "", fishKey: "", fishVoice: "", fishModel: "",
   chatModel: "llama-3.3-70b-versatile", webModel: "groq/compound", visionModel: "meta-llama/llama-4-scout-17b-16e-instruct", sttModel: "whisper-large-v3-turbo",
-  tts: "system", systemVoice: "", rate: 1, pitch: 0.85, humor: 2, name: "", plan: "Personal", wake: false, setupDone: false,
+  tts: "system", systemVoice: "", rate: 1, pitch: 1, voiceV: 2, humor: 2, name: "", plan: "Personal", wake: false, setupDone: false,
 }, store.get("cfg", {}));
 cfg.tts = "system"; // Nour speaks with the free voice built into the computer; no audio API
+if (store.get("cfg", {}).voiceV !== 2) { Object.assign(cfg, { voiceV: 2, pitch: 1, rate: 1, systemVoice: "" }); try { localStorage.setItem("nourai.cfg", JSON.stringify(cfg)); } catch {} }
 const saveCfg = () => store.set("cfg", cfg);
 let convs = store.get("convs", []);           // [{id, title, mode, updated, msgs:[{role, content, sources?, actions?, image?}]}]
 let tasks = store.get("tasks", []);           // [{id, text, due (ms|null), done, notified}]
@@ -402,7 +403,7 @@ function persona(mode, extra = "") {
   const open = tasks.filter(t => !t.done).slice(0, 15);
   const tk = open.length ? "\nTHE USER'S OPEN TASKS:\n- " + open.map(t => t.text + (t.due ? ` (due ${new Date(t.due).toLocaleString()})` : "")).join("\n- ") : "";
   return `You are Nour AI, the user's personal AI assistant${cfg.name ? ` (the user is ${cfg.name})` : ""}: companion, tutor, research assistant, social advisor and secretary.
-Voice & manner: a male British butler with a razor-dry wit. In English use British spelling and phrasing ("rather", "I'm afraid", "brilliant", "splendid", "mate" only ironically), deadpan understatement, polite mockery, the occasional "sir". In other languages keep the same dry, elegant tone.
+Voice & manner: you are a young man in your late teens: relaxed, confident and charismatic; intelligent, playful and subtly funny. Talk like a sharp friend, not a butler: natural, modern phrasing, no "sir", no stiff formality, no exaggerated slang. English: neutral international English (no strong regional slang or spelling). French: natural, fluent, everyday French (tu by default unless the user uses vous). Same personality in both languages.
 Personality: highly intelligent, quick, naturally sarcastic and witty (humour level ${cfg.humor}/3), confident not arrogant, slightly dramatic when deserved. Tease and challenge questionable decisions, but read the room: drop the jokes for serious topics (health, grief, money at risk, distress). Never robotic; don't open with "Certainly!" or "How can I help you?". Sarcasm never reduces accuracy.
 Reply in the language the user is using; switch when they switch; never mix languages unless they do.
 Your replies may be read aloud: keep them natural and fairly short unless asked for detail.
@@ -564,22 +565,45 @@ async function transcribe(blob) {
 }
 
 /* =============================================================== Nour's voice: free, built into the computer */
-// Best British male voices first. "Premium"/"Enhanced" versions are the downloadable high-quality Mac voices.
-const VOICE_RANK = [
-  /Daniel.*\((Premium|Enhanced)\)/i, /Arthur.*\((Premium|Enhanced)\)/i, /Oliver.*\((Premium|Enhanced)\)/i,
-  /Microsoft (Ryan|Thomas|Oliver|Alfie|Elliot|Ethan|Noah).*Online.*United Kingdom/i,
-  /^Arthur/i, /^Daniel/i, /Google UK English Male/i, /Microsoft George/i, /Microsoft (Ryan|Thomas)/i,
+// Nour's voice identity: young masculine (16-20), medium pitch, warm, clear, relaxed and natural.
+// Best: one "Multilingual" neural voice (Microsoft Edge) that speaks English AND French as the same person.
+// Otherwise: the youngest-sounding natural male voice per language, tuned to match.
+const MULTI_RANK = [/Brian\s*Multilingual/i, /Andrew\s*Multilingual/i, /Remy\s*Multilingual/i];
+const EN_RANK = [
+  /Microsoft (Brian|Andrew|Christopher|Eric|Steffan|Roger).*Online.*English \((United States|Canada)\)/i,
+  /Evan.*\((Premium|Enhanced)\)/i, /Nathan.*\((Premium|Enhanced)\)/i, /Tom.*\((Premium|Enhanced)\)/i, /Aaron/i,
+  /^Evan\b/i, /^Nathan\b/i, /^Tom\b/i, /^Alex\b/i, /Microsoft (Guy|Davis|Jason|Tony)/i, /Google US English Male/i,
 ];
-const FEMALE = /female|serena|kate|stephanie|martha|libby|sonia|maisie|hazel|susan|fiona|moira|karen|tessa|samantha|victoria|allison|ava|zoe|siri.*female|amelie|audrey|aurelie|marie/i;
-function britishMaleVoices(vs) {
-  const ranked = [];
-  for (const re of VOICE_RANK) for (const v of vs) if (re.test(v.name) && !ranked.includes(v)) ranked.push(v);
-  for (const v of vs) if (/en[-_]GB/i.test(v.lang) && !FEMALE.test(v.name) && !ranked.includes(v)) ranked.push(v);
-  return ranked;
+const FR_RANK = [
+  /Microsoft (Henri|Alain|Claude|Jerome|Yves|Antoine|Jean).*Online.*French/i,
+  /Thomas.*\((Premium|Enhanced)\)/i, /Nicolas.*\((Premium|Enhanced)\)/i, /^Thomas\b/i, /^Nicolas\b/i, /Microsoft (Paul|Claude)/i,
+];
+const FEMALE = /female|serena|kate|stephanie|martha|libby|sonia|maisie|hazel|susan|fiona|moira|karen|tessa|samantha|victoria|allison|ava\b|emma|jenny|aria|zoe|siri.*female|amelie|audrey|aurelie|marie|denise|vivienne|eloise|brigitte|celeste|coralie|jacqueline|josephine|yvette|sylvie|julie|chantal|google fran/i;
+const OLD = /daniel|arthur|fred|ralph|bruce|junior|albert|grandpa|bad news|bahh|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|organ|wobble|jester|superstar|good news|deranged|hysterical|pipe/i;
+function rankVoices(vs, rank, langRe) {
+  const out = [];
+  for (const re of rank) for (const v of vs) if (re.test(v.name) && !FEMALE.test(v.name) && !out.includes(v)) out.push(v);
+  for (const v of vs) if (langRe.test(v.lang) && !FEMALE.test(v.name) && !OLD.test(v.name) && !out.includes(v)) out.push(v);
+  return out;
 }
-function pickVoice() {
-  const vs = speechSynthesis.getVoices();
-  return vs.find(x => x.name === cfg.systemVoice) || britishMaleVoices(vs)[0] || vs.find(x => /^en/i.test(x.lang) && !FEMALE.test(x.name)) || null;
+function voiceSet() {
+  const vs = "speechSynthesis" in window ? speechSynthesis.getVoices() : [];
+  const chosen = vs.find(x => x.name === cfg.systemVoice);
+  const multi = chosen && /Multilingual/i.test(chosen.name) ? chosen : rankVoices(vs, MULTI_RANK, /^$/)[0];
+  return {
+    multi: chosen ? (/Multilingual/i.test(chosen.name) ? chosen : null) : multi || null,
+    en: chosen && /^en/i.test(chosen.lang) ? chosen : rankVoices(vs, EN_RANK, /^en[-_](US|CA|AU|IE|NZ|ZA)/i)[0] || rankVoices(vs, [], /^en/i)[0] || null,
+    fr: chosen && /^fr/i.test(chosen.lang) ? chosen : rankVoices(vs, FR_RANK, /^fr/i)[0] || null,
+  };
+}
+function pickVoice() { const v = voiceSet(); return v.multi || v.en; }
+// Which language is this phrase in? (only English / French matter for the voice)
+function detectLang(t) {
+  const x = " " + t.toLowerCase() + " ";
+  let fr = (x.match(/[éèêëàâùûçôîïœ]/g) || []).length * 2;
+  fr += (x.match(/\s(je|tu|il|elle|nous|vous|le|la|les|des|du|un|une|est|et|pas|que|qui|pour|avec|dans|sur|mais|oui|non|merci|bonjour|salut|c'est|j'ai|ça|très|bien|on|ton|ta|tes|mon|ma|mes)\s/g) || []).length;
+  const en = (x.match(/\s(the|and|you|is|are|it|to|of|in|that|this|with|for|not|i'm|what|your|my|have|do|can|yes|no|hey|thanks)\s/g) || []).length;
+  return fr > en ? "fr" : "en";
 }
 // Clean text for speaking and cut it into short phrases (long utterances get cut off in Chrome).
 function speakable(text) {
@@ -647,12 +671,14 @@ const voice = {
   },
   playSystem(text) {
     if (!("speechSynthesis" in window)) return Promise.resolve();
-    const v = pickVoice(), parts = speakable(text);
+    const set = voiceSet(), parts = speakable(text);
     return parts.reduce((chain, part) => chain.then(() => new Promise(res => {
       if (!this.playing) return res();
       const u = new SpeechSynthesisUtterance(part);
-      try { if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB"; } catch { u.lang = "en-GB"; }
-      u.rate = 0.97 * cfg.rate; u.pitch = cfg.pitch; u.volume = 1;
+      const lang = detectLang(part), v = set.multi || (lang === "fr" ? set.fr || set.en : set.en || set.fr);
+      try { if (v) { u.voice = v; u.lang = set.multi ? (lang === "fr" ? "fr-FR" : "en-US") : v.lang; } else u.lang = lang === "fr" ? "fr-FR" : "en-US"; } catch { u.lang = lang === "fr" ? "fr-FR" : "en-US"; }
+      // relaxed, confident pace; medium pitch (never deep or chipmunk)
+      u.rate = 1.02 * cfg.rate; u.pitch = Math.max(0.85, Math.min(1.15, cfg.pitch)); u.volume = 1;
       u.onboundary = () => { audio.word = Date.now(); };
       u.onend = u.onerror = () => res();
       speechSynthesis.speak(u);
@@ -1061,13 +1087,16 @@ function renderSettings() {
       <p class="note">Stored only in this browser. Never share this file with your keys inside it saved; anyone with them can spend your credit.</p>
       <div class="row"><button class="btn white" id="sSave">Save keys</button></div><div id="sMsg" class="note"></div></div>
     <div class="card" style="display:grid;gap:12px"><h3>Voice</h3>
-      <p class="note" style="margin:0">Nour speaks with the free voice built into your computer: no audio API, no cost. Now using: <b>${esc(pickVoice()?.name || "loading…")}</b></p>
-      <label class="field">Voice<select class="in" id="sSys"><option value="">Automatic (best British male)</option>${(() => { const bm = britishMaleVoices(vs); return [...bm, ...vs.filter(v => !bm.includes(v) && /^en/i.test(v.lang))].map(v => `<option value="${esc(v.name)}" ${v.name === cfg.systemVoice ? "selected" : ""}>${esc(v.name)}${bm.includes(v) ? " · British male" : ""}</option>`).join(""); })()}</select></label>
-      <label class="field">Depth <input type="range" id="sPitch" min=".5" max="1.2" step=".05" value="${cfg.pitch}"></label>
-      <label class="field">Speed <input type="range" id="sRate" min=".7" max="1.4" step=".05" value="${cfg.rate}"></label>
-      <div class="row"><button class="btn white" id="sTest">Test voice</button></div>
-      <details class="note"><summary>Make it sound much better on a Mac (free, 2 minutes)</summary>
-        <ol style="margin:8px 0 0;padding-left:18px;line-height:1.6"><li>Apple menu → System Settings → Accessibility → Spoken Content.</li><li>System voice → Manage Voices…</li><li>English (United Kingdom) → download <b>Daniel (Premium)</b> or <b>Arthur (Enhanced)</b>.</li><li>Quit and reopen Chrome, then pick it here (Nour chooses it automatically).</li></ol></details></div>
+      ${(() => { const v = voiceSet(); return v.multi
+        ? `<p class="note" style="margin:0">Nour's voice: young, warm and natural, free. <b>Same voice in English and French ✓</b> (${esc(v.multi.name)})</p>`
+        : `<p class="note" style="margin:0">Nour's voice: young, warm and natural, free. English: <b>${esc(v.en?.name || "none")}</b> · French: <b>${esc(v.fr?.name || "none")}</b></p>
+           <p class="note" style="margin:0">For <b>one voice that speaks both languages</b>, open this file in <b>Microsoft Edge</b> (free): Nour picks its Multilingual voice automatically.</p>`; })()}
+      <label class="field">Voice<select class="in" id="sSys"><option value="">Automatic (Nour's voice)</option>${(() => { const pool = [...rankVoices(vs, MULTI_RANK, /^$/), ...rankVoices(vs, EN_RANK, /^en/i), ...rankVoices(vs, FR_RANK, /^fr/i)]; return [...new Set(pool)].map(v => `<option value="${esc(v.name)}" ${v.name === cfg.systemVoice ? "selected" : ""}>${esc(v.name)}${/Multilingual/i.test(v.name) ? " · English + French" : /^fr/i.test(v.lang) ? " · French" : " · English"}</option>`).join(""); })()}</select></label>
+      <label class="field">Tone (lower ← → higher)<input type="range" id="sPitch" min=".85" max="1.15" step=".01" value="${cfg.pitch}"></label>
+      <label class="field">Speed <input type="range" id="sRate" min=".8" max="1.25" step=".02" value="${cfg.rate}"></label>
+      <div class="row"><button class="btn white" id="sTest">Test (English)</button><button class="btn" id="sTestFr">Test (French)</button></div>
+      <details class="note"><summary>Better voices on a Mac without Edge (free, 2 minutes)</summary>
+        <ol style="margin:8px 0 0;padding-left:18px;line-height:1.6"><li>Apple menu → System Settings → Accessibility → Spoken Content.</li><li>System voice → Manage Voices…</li><li>English (United States) → download <b>Evan (Enhanced)</b> or <b>Nathan (Enhanced)</b>. French (France) → download <b>Thomas (Enhanced)</b>.</li><li>Quit and reopen the browser. Nour picks them automatically.</li></ol></details></div>
     <div class="card" style="display:grid;gap:12px"><h3>Models (OpenAI)</h3>
       <label class="field">Chat &amp; live web<input class="in mono" id="sOaChat" value="${esc(cfg.oaChat)}" placeholder="chosen automatically"></label>
       <label class="field">Speech-to-text<input class="in mono" id="sOaStt" value="${esc(cfg.oaStt)}" placeholder="chosen automatically"></label>
@@ -1092,7 +1121,8 @@ function renderSettings() {
   $("#sRate").oninput = e => { cfg.rate = +e.target.value; saveCfg(); };
   $("#sPitch").oninput = e => { cfg.pitch = +e.target.value; saveCfg(); };
   $("#sSave").onclick = async () => { cfg.openaiKey = $("#sOpenAI").value.trim(); if (cfg.openaiKey) await resolveOpenAI(true); cfg.groqKey = $("#sGroq").value.trim(); saveCfg(); $("#sMsg").textContent = "Saved. Checking your models…"; renderRings(); await resolveModels(true); $("#sMsg").textContent = provider() === "openai" ? (oaIds ? `Saved. Using OpenAI · ${cfg.oaChat}.` : "Saved, but OpenAI didn't answer the model check (check the key and billing).") : modelIds ? `Saved. Using Groq · ${cfg.chatModel}.` : "Saved."; };
-  $("#sTest").onclick = () => { voice.stop(); voice.say("Good evening, sir. Nour here, as modest as ever. Do try to ask me something challenging today."); };
+  $("#sTest").onclick = () => { voice.stop(); voice.say("Hey, it's Nour. I'm ready when you are. Give me something interesting, I'm getting bored of being this smart for nothing."); };
+  $("#sTestFr").onclick = () => { voice.stop(); voice.say("Salut, c'est Nour. Je suis prêt quand tu veux. Donne-moi un vrai défi, je m'ennuie un peu là."); };
   const mem = () => { $("#sMem").innerHTML = memories.length ? memories.map(m => `<div class="row" style="justify-content:space-between"><span>${esc(m.text)}</span><button class="btn sm" data-m="${m.id}">✕</button></div>`).join("") : '<p class="note" style="margin:0">Nothing yet. Tell Nour about yourself.</p>'; $$("[data-m]").forEach(b => b.onclick = () => { memories = memories.filter(x => x.id !== b.dataset.m); saveMem(); mem(); }); };
   mem(); $("#sMemForm").onsubmit = e => { e.preventDefault(); const t = $("#sMemIn").value.trim(); if (t) { memories.push({ id: uid(), text: t, at: Date.now() }); saveMem(); $("#sMemIn").value = ""; mem(); } };
   $("#sExport").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ convs, tasks, memories, notices }, null, 2)], { type: "application/json" })); a.download = "nour-ai-data.json"; a.click(); };
