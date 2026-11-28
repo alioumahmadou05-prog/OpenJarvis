@@ -21,6 +21,11 @@
   button[aria-pressed="true"] { background: var(--text); color: #050815; border-color: var(--text); }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
+  textarea { width: 100%; background: #0d1326; color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical; }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--text); color: #050815; border-color: var(--text); }
+  .voiceinfo { color: var(--dim); font-size: 12.5px; line-height: 1.45; }
+  .voiceinfo b { color: var(--text); font-weight: 500; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 8px 10px; text-align: center; overflow: hidden; }
   .card nour-nx { width: 140px; }
@@ -41,8 +46,10 @@
       <div class="btns" id="stateBtns"></div>
       <div class="lbl">Fun actions</div>
       <div class="btns" id="actionBtns"></div>
-      <div class="lbl">Voice level (lip-sync test)</div>
-      <input type="range" id="lvl" min="0" max="1" step="0.01" value="0" aria-label="Voice level">
+      <div class="lbl">Talk to me (Nour's voice)</div>
+      <textarea id="say" rows="3" aria-label="Text for Nour to say">Hey, it's Nour. Ready when you are. Salut, c'est moi, Nour. On s'y met ?</textarea>
+      <div class="btns"><button id="speak" class="primary">Speak</button><button data-line="en">English line</button><button data-line="fr">French line</button><button id="hush">Stop</button></div>
+      <div class="voiceinfo" id="voiceinfo">Loading voices…</div>
       <button id="demo">Play a demo</button>
     </div>
   </section>
@@ -53,6 +60,140 @@
   <section class="grid" id="gridActions"></section>
 </main>
 <script type="module">
+/**
+ * Nour's voice (see config/voice-identity.json): young masculine (16-20), medium pitch, warm,
+ * clear, relaxed and confident, and the same speaker in English and French whenever the system has
+ * a multilingual neural voice (Microsoft Edge: Brian / Andrew Multilingual).
+ *
+ * Free and offline-capable: it uses the voices built into the browser / OS (no audio API).
+ *
+ *   const v = new NourVoice();
+ *   v.speak("Salut ! Hey, it's Nour.", { onStart, onWord, onEnd });
+ */
+const NV_MULTI = [/Brian\s*Multilingual/i, /Andrew\s*Multilingual/i, /Remy\s*Multilingual/i];
+const NV_EN = [
+    /Microsoft (Brian|Andrew|Christopher|Eric|Steffan|Roger).*Online.*English \((United States|Canada)\)/i,
+    /Evan.*\((Premium|Enhanced)\)/i, /Nathan.*\((Premium|Enhanced)\)/i, /Tom.*\((Premium|Enhanced)\)/i, /Aaron/i,
+    /^Evan\b/i, /^Nathan\b/i, /^Tom\b/i, /^Alex\b/i, /Microsoft (Guy|Davis|Jason|Tony)/i, /Google US English Male/i,
+];
+const NV_FR = [
+    /Microsoft (Henri|Alain|Claude|Jerome|Yves|Antoine|Jean).*Online.*French/i,
+    /Thomas.*\((Premium|Enhanced)\)/i, /Nicolas.*\((Premium|Enhanced)\)/i, /^Thomas\b/i, /^Nicolas\b/i, /Microsoft (Paul|Claude)/i,
+];
+const NV_FEMALE = /female|serena|kate|stephanie|martha|libby|sonia|maisie|hazel|susan|fiona|moira|karen|tessa|samantha|victoria|allison|ava\b|emma|jenny|aria|zoe|amelie|amélie|audrey|aurelie|marie|denise|vivienne|eloise|brigitte|celeste|coralie|jacqueline|josephine|yvette|sylvie|julie|chantal|google fran/i;
+const NV_AVOID = /daniel|arthur|fred|ralph|bruce|junior|albert|grandpa|bad news|bahh|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|organ|wobble|jester|superstar|good news|deranged|hysterical|pipe/i;
+function nvRank(vs, rank, langRe) {
+    const out = [];
+    for (const re of rank)
+        for (const v of vs)
+            if (re.test(v.name) && !NV_FEMALE.test(v.name) && !out.includes(v))
+                out.push(v);
+    if (langRe)
+        for (const v of vs)
+            if (langRe.test(v.lang) && !NV_FEMALE.test(v.name) && !NV_AVOID.test(v.name) && !out.includes(v))
+                out.push(v);
+    return out;
+}
+/** English or French? (enough to pick the right pronunciation for each phrase) */
+function detectLang(t) {
+    const x = " " + t.toLowerCase() + " ";
+    let fr = (x.match(/[éèêëàâùûçôîïœ]/g) || []).length * 2;
+    fr += (x.match(/\s(je|tu|il|elle|nous|vous|le|la|les|des|du|un|une|est|et|pas|que|qui|pour|avec|dans|sur|mais|oui|non|merci|bonjour|salut|c'est|j'ai|ça|très|bien|on|ton|ta|tes|mon|ma|mes)\s/g) || []).length;
+    const en = (x.match(/\s(the|and|you|is|are|it|to|of|in|that|this|with|for|not|i'm|what|your|my|have|do|can|yes|no|hey|thanks)\s/g) || []).length;
+    return fr > en ? "fr" : "en";
+}
+/** Clean text for speech and split it into short phrases (long utterances get cut off in Chrome). */
+function phrases(text) {
+    const t = String(text)
+        .replace(/https?:\/\/\S+/g, "the link")
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")
+        .replace(/[*_#`>|~]/g, "").replace(/\s+[—–]\s+/g, ", ")
+        .replace(/\s+/g, " ").replace(/\s+([.,!?;:])/g, "$1").trim();
+    if (!t)
+        return [];
+    const out = [];
+    for (const sent of t.match(/[^.!?…]+[.!?…]*\s*/g) || [t]) {
+        let s = sent.trim();
+        while (s.length > 180) {
+            let k = s.lastIndexOf(", ", 180);
+            if (k < 60)
+                k = s.lastIndexOf(" ", 180);
+            if (k < 1)
+                k = 180;
+            out.push(s.slice(0, k + 1).trim());
+            s = s.slice(k + 1).trim();
+        }
+        if (s)
+            out.push(s);
+    }
+    return out;
+}
+class NourVoice {
+    pitch = 1; // medium (clamped 0.85-1.15: never deep, never squeaky)
+    rate = 1.02; // relaxed but confident
+    preferred = ""; // a voice name chosen by the user, or "" for automatic
+    token = 0;
+    get supported() { return typeof window !== "undefined" && "speechSynthesis" in window; }
+    /** The voices Nour would use right now. `multi` = one speaker for both languages. */
+    voices() {
+        const vs = this.supported ? speechSynthesis.getVoices() : [];
+        const chosen = vs.find(v => v.name === this.preferred) || null;
+        if (chosen)
+            return { multi: /Multilingual/i.test(chosen.name) ? chosen : null, en: /^en/i.test(chosen.lang) ? chosen : null, fr: /^fr/i.test(chosen.lang) ? chosen : null };
+        return {
+            multi: nvRank(vs, NV_MULTI, null)[0] || null,
+            en: nvRank(vs, NV_EN, /^en[-_](US|CA|AU|IE|NZ|ZA)/i)[0] || nvRank(vs, [], /^en/i)[0] || null,
+            fr: nvRank(vs, NV_FR, /^fr/i)[0] || null,
+        };
+    }
+    /** Waits until the browser has loaded its voice list (it loads asynchronously). */
+    ready() {
+        if (!this.supported || speechSynthesis.getVoices().length)
+            return Promise.resolve();
+        return new Promise(res => { const done = () => res(); speechSynthesis.addEventListener("voiceschanged", done, { once: true }); setTimeout(done, 1500); });
+    }
+    stop() { this.token++; if (this.supported)
+        speechSynthesis.cancel(); }
+    async speak(text, hooks = {}) {
+        if (!this.supported) {
+            hooks.onEnd?.();
+            return;
+        }
+        await this.ready();
+        this.stop();
+        const my = ++this.token, set = this.voices(), parts = phrases(text);
+        hooks.onStart?.();
+        for (const part of parts) {
+            if (my !== this.token)
+                return;
+            await new Promise(res => {
+                const u = new SpeechSynthesisUtterance(part);
+                const lang = detectLang(part);
+                const v = set.multi || (lang === "fr" ? set.fr || set.en : set.en || set.fr);
+                try {
+                    if (v)
+                        u.voice = v;
+                }
+                catch { /* voice not settable in this browser */ }
+                u.lang = set.multi || !v ? (lang === "fr" ? "fr-FR" : "en-US") : v.lang;
+                u.pitch = Math.max(0.85, Math.min(1.15, this.pitch));
+                u.rate = this.rate;
+                u.onboundary = () => hooks.onWord?.();
+                let settled = false;
+                const end = () => { if (!settled) {
+                    settled = true;
+                    res();
+                } };
+                u.onend = u.onerror = end;
+                speechSynthesis.speak(u);
+                setTimeout(end, 2500 + part.length * 120); // never hang if the browser drops an utterance
+            });
+        }
+        if (my === this.token)
+            hooks.onEnd?.();
+    }
+}
+
 /**
  * <nour-nx> — Nour's character: the user's own Nx monkey design, traced 1:1 from their image,
  * split into parts (head, arms, legs, tail, sunglasses) and animated.
@@ -1118,14 +1259,53 @@ document.getElementById("gridStates").innerHTML = NX_STATES.map(card).join("");
 document.getElementById("gridActions").innerHTML = NX_ACTIONS.map(card).join("");
 const setState = s => { big.state = s; document.querySelectorAll("[data-s]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s))); };
 document.querySelectorAll(".btns").forEach(g => g.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (b) { stopDemo(); setState(b.dataset.s); } }));
-document.getElementById("lvl").oninput = e => { if (big.state !== "speaking") setState("speaking"); big.level = +e.target.value; };
+// ---- Nour's voice + lip-sync
+const nv = new NourVoice();
+const LINES = {
+  en: ["Hey, it's Nour. I'm ready when you are.", "Okay, that was actually a smart question. I'm impressed. A little.", "Give me something interesting, I'm getting bored of being this smart for nothing."],
+  fr: ["Salut, c'est Nour. Je suis prêt quand tu veux.", "Franchement, bonne question. Je suis presque impressionné.", "Donne-moi un vrai défi, je m'ennuie un peu là."],
+};
+let lastWord = 0, talking = false, mouthTimer = 0, before = "idle";
+function mouthLoop() {
+  clearInterval(mouthTimer);
+  mouthTimer = setInterval(() => {
+    if (!talking) return;
+    const since = Date.now() - lastWord;
+    // open on each spoken word, close between; if the browser sends no word events, keep a natural chatter
+    const lvl = since < 900 ? Math.max(0.12, 1 - since / 220) * (0.6 + Math.random() * 0.4) : 0.25 + Math.abs(Math.sin(Date.now() / 95)) * 0.6;
+    big.level = lvl;
+  }, 50);
+}
+async function say(text) {
+  if (!text.trim()) return;
+  stopDemo();
+  if (!talking) before = big.state === "speaking" ? "idle" : big.state;
+  await nv.speak(text, {
+    onStart: () => { talking = true; setState("speaking"); mouthLoop(); },
+    onWord: () => { lastWord = Date.now(); },
+    onEnd: () => { talking = false; clearInterval(mouthTimer); setState(before === "speaking" ? "idle" : before); },
+  });
+}
+document.getElementById("speak").onclick = () => say(document.getElementById("say").value);
+document.querySelectorAll("[data-line]").forEach(b => b.onclick = () => { const l = LINES[b.dataset.line]; const t = l[Math.floor(Math.random() * l.length)]; document.getElementById("say").value = t; say(t); });
+document.getElementById("hush").onclick = () => { nv.stop(); talking = false; clearInterval(mouthTimer); setState("idle"); };
+async function showVoice() {
+  await nv.ready();
+  const v = nv.voices(), el = document.getElementById("voiceinfo");
+  if (!nv.supported) { el.textContent = "This browser has no speech voices."; return; }
+  el.innerHTML = v.multi
+    ? `Voice: <b>${v.multi.name}</b><br>Same voice in English and French ✓`
+    : `English: <b>${v.en ? v.en.name : "none"}</b> · French: <b>${v.fr ? v.fr.name : "none"}</b><br>For one voice that speaks both languages, open this page in <b>Microsoft Edge</b>.`;
+}
+showVoice();
+if (nv.supported) speechSynthesis.addEventListener("voiceschanged", showVoice);
 let timers = [];
 const stopDemo = () => { timers.forEach(clearTimeout); timers = []; };
 document.getElementById("demo").onclick = () => {
   stopDemo();
   const seq = [["portal-out", 0], ["wave", 3000], ["listening", 5200], ["thinking", 7200], ["speaking", 9000], ["working", 12000], ["success", 14500], ["coffee", 16800], ["idle", 24000]];
   seq.forEach(([s, t]) => timers.push(setTimeout(() => setState(s), t)));
-  for (let t = 9000; t < 12000; t += 90) timers.push(setTimeout(() => { big.level = Math.abs(Math.sin(t / 130)) * (0.4 + Math.random() * 0.6); }, t));
+  timers.push(setTimeout(() => say("Hey, it's Nour. Ready when you are."), 9000));
 };
 </script>
 </body>

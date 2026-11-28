@@ -16,5 +16,5 @@ writeFileSync("preview/Nour Monkey.html", monkey.replace("/*__CAT__*/", () => in
 console.log("previews written");
 
 const nxTpl = readFileSync("preview/nx-preview.template.html", "utf8");
-writeFileSync("preview/Nour Nx.html", nxTpl.replace("/*__NX__*/", () => inline("build/renderer/character/nour-nx.js")));
+writeFileSync("preview/Nour Nx.html", nxTpl.replace("/*__VOICE__*/", () => inline("build/renderer/voice/nour-voice.js")).replace("/*__NX__*/", () => inline("build/renderer/character/nour-nx.js")));
 console.log("Nour Nx preview written");
